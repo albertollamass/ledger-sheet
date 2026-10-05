@@ -1,0 +1,6 @@
+node_modules
+dist
+.env
+.DS_Store
+# Datos financieros privados de referencia (no subir a GitHub)
+/ingresos-y-gastos-en-excel.xlsx/
