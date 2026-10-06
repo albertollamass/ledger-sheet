@@ -197,10 +197,32 @@ function InstallButton({ help, setHelp }) {
   )
 }
 
-function BalanceInput({ value, onSave, inputClassName }) {
+function EyeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 3l18 18" />
+      <path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 3.9M6.6 6.6C3.9 8.2 2 12 2 12s3.5 7 10 7c1.4 0 2.7-.3 3.9-.8" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    </svg>
+  )
+}
+
+function BalanceInput({ value, onSave, inputClassName, masked }) {
   const fmt = (v) => (v === undefined || v === null || v === '' ? '' : String(v))
   const [draft, setDraft] = useState(fmt(value))
   useEffect(() => setDraft(fmt(value)), [value])
+  if (masked) {
+    return <p className={inputClassName}>****</p>
+  }
   const dirty = draft !== fmt(value)
   const commit = () => {
     if (draft === fmt(value)) return
@@ -350,6 +372,22 @@ export default function App() {
   const [preview, setPreview] = useState(null)
   const [prefill, setPrefill] = useState(null)
   const [installHelp, setInstallHelp] = useState(false)
+  const [privateMode, setPrivateMode] = useState(() => {
+    try {
+      return localStorage.getItem('ledger-private-mode') === '1'
+    } catch {
+      return false
+    }
+  })
+  const togglePrivate = () => {
+    setPrivateMode((v) => {
+      try {
+        localStorage.setItem('ledger-private-mode', v ? '0' : '1')
+      } catch {}
+      return !v
+    })
+  }
+  const fmt = (n) => (privateMode ? '****' : fmt(n))
   const fileRef = useRef(null)
   const local = useLocalDemo()
 
@@ -616,6 +654,15 @@ export default function App() {
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm w-full sm:w-auto justify-start border-t border-tinta/15 pt-2 sm:border-t-0 sm:pt-0">
             <span className="text-tinta/55 hidden md:inline">{demo ? 'modo demo' : user?.email}</span>
+            <button
+              onClick={togglePrivate}
+              aria-pressed={privateMode}
+              aria-label={privateMode ? 'Mostrar importes' : 'Ocultar importes'}
+              title={privateMode ? 'Mostrar importes' : 'Ocultar importes'}
+              className="border border-tinta/25 px-2.5 py-1.5 hover:border-boli hover:text-boli"
+            >
+              {privateMode ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
             <InstallButton help={installHelp} setHelp={setInstallHelp} />
             <button
               onClick={() => fileRef.current?.click()}
@@ -650,6 +697,7 @@ export default function App() {
                 <BalanceInput
                   value={activeBalances[String(year)]}
                   onSave={saveBalance}
+                  masked={privateMode}
                   inputClassName="figures border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 w-full font-slab font-semibold text-lg"
                 />
               </div>
@@ -679,25 +727,26 @@ export default function App() {
                 <BalanceInput
                   value={activeBalances[String(year)]}
                   onSave={saveBalance}
+                  masked={privateMode}
                   inputClassName="figures text-xl font-slab font-semibold w-full bg-transparent"
                 />
               </dd>
             </div>
             <div className="p-4">
               <dt className="text-xs text-tinta/55">Ingresos del año</dt>
-              <dd className="figures mt-1 text-xl font-slab font-semibold text-haber">{eur(totalIncome)}</dd>
+              <dd className="figures mt-1 text-xl font-slab font-semibold text-haber">{fmt(totalIncome)}</dd>
             </div>
             <div className="p-4">
               <dt className="text-xs text-tinta/55">Gastos del año</dt>
-              <dd className="figures mt-1 text-xl font-slab font-semibold text-rojo">{eur(totalExpense)}</dd>
+              <dd className="figures mt-1 text-xl font-slab font-semibold text-rojo">{fmt(totalExpense)}</dd>
             </div>
             <div className="p-4">
               <dt className="text-xs text-tinta/55">Neto</dt>
-              <dd className={`figures mt-1 text-xl font-slab font-semibold ${net >= 0 ? 'text-haber' : 'text-rojo'}`}>{eur(net)}</dd>
+              <dd className={`figures mt-1 text-xl font-slab font-semibold ${net >= 0 ? 'text-haber' : 'text-rojo'}`}>{fmt(net)}</dd>
             </div>
             <div className="p-4 col-span-2 md:col-span-1">
               <dt className="text-xs text-tinta/55">Acumulado a diciembre</dt>
-              <dd className="figures mt-1 text-xl font-slab font-semibold">{eur(acumulado[11] ?? initial)}</dd>
+              <dd className="figures mt-1 text-xl font-slab font-semibold">{fmt(acumulado[11] ?? initial)}</dd>
             </div>
           </dl>
         </section>
@@ -732,9 +781,9 @@ export default function App() {
                     <tr key={label}>
                       <td className="sticky left-0 z-[1] bg-white p-2.5 font-slab font-semibold border-b border-r border-tinta/10">{label}</td>
                       {arr.map((v, i) => (
-                        <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} ${cls}`}>{eur(v)}</td>
+                        <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} ${cls}`}>{fmt(v)}</td>
                       ))}
-                      <td className={`p-2.5 text-right bg-white border-b border-tinta/10 ${cls}`}>{label === 'Acumulado' ? '' : eur(sum(arr))}</td>
+                      <td className={`p-2.5 text-right bg-white border-b border-tinta/10 ${cls}`}>{label === 'Acumulado' ? '' : fmt(sum(arr))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -778,17 +827,17 @@ export default function App() {
                         <tr key={r.label}>
                           <td className="sticky left-0 z-[1] bg-white p-2.5 w-52 border-b border-r border-tinta/10">{r.label}</td>
                           {r.months.map((v, i) => (
-                            <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} text-tinta/60`}>{v ? eur(v) : ''}</td>
+                            <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} text-tinta/60`}>{v ? fmt(v) : ''}</td>
                           ))}
-                          <td className="p-2.5 text-right font-semibold bg-white border-b border-tinta/10">{eur(sum(r.months))}</td>
+                          <td className="p-2.5 text-right font-semibold bg-white border-b border-tinta/10">{fmt(sum(r.months))}</td>
                         </tr>
                       ))}
                       <tr className="font-semibold">
                         <td className="sticky left-0 z-[1] bg-papel p-2.5 font-slab border-b-2 border-r border-tinta/60">Total {group}</td>
                         {total.map((v, i) => (
-                          <td key={i} className={`p-2.5 text-right border-b-2 border-tinta/60 ${i === month - 1 ? 'bg-[#dfe6fb]' : 'bg-papel'}`}>{eur(v)}</td>
+                          <td key={i} className={`p-2.5 text-right border-b-2 border-tinta/60 ${i === month - 1 ? 'bg-[#dfe6fb]' : 'bg-papel'}`}>{fmt(v)}</td>
                         ))}
-                        <td className="p-2.5 text-right bg-papel border-b-2 border-tinta/60">{eur(sum(total))}</td>
+                        <td className="p-2.5 text-right bg-papel border-b-2 border-tinta/60">{fmt(sum(total))}</td>
                       </tr>
                       {!isIncome && (
                         <tr className="text-xs text-tinta/50">
@@ -818,20 +867,20 @@ export default function App() {
               <div>
                 <p className="font-slab text-rojo text-lg">Gastado en {MONTHS[month - 1].toLowerCase()}</p>
                 <p className="figures font-slab font-bold text-rojo leading-none text-6xl sm:text-7xl mt-1">
-                  {eur(monthExpense)}
+                  {fmt(monthExpense)}
                 </p>
                 <p className="text-sm text-tinta/55 mt-2">
-                  Ingresado <span className="figures font-semibold text-haber">{eur(monthIncome)}</span>
+                  Ingresado <span className="figures font-semibold text-haber">{fmt(monthIncome)}</span>
                 </p>
               </div>
               <div
                 className={`stamp figures ml-auto w-32 h-32 sm:w-36 sm:h-36 -rotate-6 flex flex-col items-center justify-center text-center leading-tight ${
                   monthIncome - monthExpense >= 0 ? 'text-haber' : 'text-rojo'
                 }`}
-                aria-label={`Neto del mes: ${eur(monthIncome - monthExpense)}`}
+                aria-label={`Neto del mes: ${fmt(monthIncome - monthExpense)}`}
               >
                 <span className="text-[11px] font-medium">neto</span>
-                <span className="font-slab font-bold text-xl sm:text-2xl px-2">{eur(monthIncome - monthExpense)}</span>
+                <span className="font-slab font-bold text-xl sm:text-2xl px-2">{fmt(monthIncome - monthExpense)}</span>
               </div>
             </section>
 
@@ -857,7 +906,7 @@ export default function App() {
                     <div className="flex-1 h-3 bg-papel border border-tinta/15 overflow-hidden">
                       <div className="bg-rojo/80 h-full" style={{ width: `${(v / max) * 100}%` }} />
                     </div>
-                    <div className="figures w-28 text-right font-slab font-semibold">{eur(v)}</div>
+                    <div className="figures w-28 text-right font-slab font-semibold">{fmt(v)}</div>
                   </div>
                 ))
               })()}
@@ -872,7 +921,7 @@ export default function App() {
                     <p className="text-xs text-tinta/50">{m.group}, {m.date}{m.note ? `, ${m.note}` : ''}</p>
                   </div>
                   <p className={`figures font-slab font-semibold text-base ${m.kind === 'ingreso' ? 'text-haber' : 'text-rojo'}`}>
-                    {m.kind === 'ingreso' ? '+' : '−'}{eur(m.amount)}
+                    {m.kind === 'ingreso' ? '+' : '−'}{fmt(m.amount)}
                   </p>
                   <button onClick={() => removeMovement(m.id)} aria-label={`Borrar ${m.label}`} className="text-tinta/25 hover:text-rojo px-2 text-base">✕</button>
                 </div>
@@ -913,7 +962,7 @@ export default function App() {
                         catData.kind === 'ingreso' ? 'text-haber' : 'text-rojo'
                       }`}
                     >
-                      {eur(catData.total)}
+                      {fmt(catData.total)}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 self-start">
@@ -964,7 +1013,7 @@ export default function App() {
                 <p className="text-sm text-tinta/55 mt-2">
                   {catData.count} {catData.count === 1 ? 'movimiento' : 'movimientos'}
                   {catScope === 'año' && (
-                    <>, media de {eur(catData.avg)} al mes</>
+                    <>, media de {fmt(catData.avg)} al mes</>
                   )}
                   {catData.scopeTotal > 0 && (
                     <>, supone el {Math.round((catData.total / catData.scopeTotal) * 100)} % de lo {catData.kind === 'ingreso' ? 'ingresado' : 'gastado'} en el periodo</>
@@ -994,7 +1043,7 @@ export default function App() {
                           style={{ width: `${catData.total ? (r.amount / catData.total) * 100 : 0}%` }}
                         />
                       </div>
-                      <p className="figures w-28 text-right font-slab font-semibold">{eur(r.amount)}</p>
+                      <p className="figures w-28 text-right font-slab font-semibold">{fmt(r.amount)}</p>
                       <p className="figures w-12 text-right text-xs text-tinta/50">
                         {catData.total ? `${Math.round((r.amount / catData.total) * 100)} %` : '—'}
                       </p>
@@ -1029,9 +1078,9 @@ export default function App() {
                           <div className="h-full bg-tinta/70" style={{ width: `${(h.expense / max) * 100}%` }} />
                         </div>
                       </td>
-                      <td className="p-2.5 text-right text-haber">{eur(h.income)}</td>
-                      <td className="p-2.5 text-right text-rojo">{eur(h.expense)}</td>
-                      <td className="p-2.5 text-right font-slab font-semibold">{eur(h.net)}</td>
+                      <td className="p-2.5 text-right text-haber">{fmt(h.income)}</td>
+                      <td className="p-2.5 text-right text-rojo">{fmt(h.expense)}</td>
+                      <td className="p-2.5 text-right font-slab font-semibold">{fmt(h.net)}</td>
                     </tr>
                   )
                 })}
@@ -1089,9 +1138,9 @@ export default function App() {
                   <tr key={s.year} className="border-b border-tinta/10 last:border-b-0">
                     <td className="py-2 pr-2 font-slab font-semibold">{s.year}</td>
                     <td className="p-2 text-right">{s.count}</td>
-                    <td className="p-2 text-right text-haber">{eur(s.income)}</td>
-                    <td className="p-2 text-right text-rojo">{eur(s.expense)}</td>
-                    <td className="p-2 text-right">{eur(s.balance)}</td>
+                    <td className="p-2 text-right text-haber">{fmt(s.income)}</td>
+                    <td className="p-2 text-right text-rojo">{fmt(s.expense)}</td>
+                    <td className="p-2 text-right">{fmt(s.balance)}</td>
                   </tr>
                 ))}
               </tbody>
