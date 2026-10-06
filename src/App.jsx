@@ -160,14 +160,14 @@ function MovementForm({ onSave, initial }) {
       }}
     >
       <div className="border-b-[3px] border-double border-tinta/30 px-4 pt-4 pb-3">
-        <h2 className="font-slab font-semibold text-xl">Nuevo asiento</h2>
-        <p className="text-xs text-tinta/55">Cada apunte cae en su mes y su tipo.</p>
+        <h2 className="font-slab font-semibold text-xl">Nuevo movimiento</h2>
+        <p className="text-xs text-tinta/55">Queda guardado en su mes y su tipo.</p>
       </div>
       <div className="p-4 space-y-4">
-      <div className="grid grid-cols-2 border border-tinta/25" role="group" aria-label="Tipo de apunte">
+      <div className="grid grid-cols-2 border border-tinta/25" role="group" aria-label="Tipo de movimiento">
         {[
-          ['gasto', 'Debe', 'sale dinero'],
-          ['ingreso', 'Haber', 'entra dinero']
+          ['gasto', 'Gasto', 'sale dinero'],
+          ['ingreso', 'Ingreso', 'entra dinero']
         ].map(([k, title, sub]) => (
           <button
             key={k}
@@ -220,7 +220,7 @@ function MovementForm({ onSave, initial }) {
         <input placeholder="Café con…" value={note} onChange={(e) => setNote(e.target.value)} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm placeholder:text-tinta/30" />
       </label>
       <button className="stamp w-full text-boli py-2.5 font-semibold hover:bg-boli hover:text-white active:scale-[0.98] transition">
-        Anotar en el {kind === 'gasto' ? 'debe' : 'haber'}
+        Guardar {kind}
       </button>
       </div>
     </form>
@@ -234,7 +234,9 @@ export default function App() {
   const [balances, setBalances] = useState({})
   const [year, setYear] = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [tab, setTab] = useState('mes') // mes | anual | historico
+  const [tab, setTab] = useState('mes') // mes | anual | categorias | historico
+  const [catGroup, setCatGroup] = useState(null)
+  const [catScope, setCatScope] = useState('mes') // mes | año
   const [showForm, setShowForm] = useState(false)
   const [importing, setImporting] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -290,6 +292,52 @@ export default function App() {
   const monthMovs = activeMovements.filter((m) => m.year === year && m.month === month)
   const monthIncome = sum(monthMovs.filter((m) => m.kind === 'ingreso').map((m) => m.amount))
   const monthExpense = sum(monthMovs.filter((m) => m.kind === 'gasto').map((m) => m.amount))
+
+  // Categorías: grupos fijos + los que vengan de los datos
+  const availableGroups = useMemo(() => {
+    const fixed = [...INCOME_GROUPS, ...EXPENSE_GROUPS].map((g) => g.group)
+    const extras = [...new Set(activeMovements.map((m) => m.group))].filter((g) => g && !fixed.includes(g))
+    return [...fixed, ...extras]
+  }, [activeMovements])
+
+  // Por defecto, la categoría con más gasto del año
+  useEffect(() => {
+    if (catGroup || !availableGroups.length) return
+    const tot = {}
+    activeMovements
+      .filter((m) => m.year === year && m.kind === 'gasto')
+      .forEach((m) => {
+        tot[m.group] = (tot[m.group] || 0) + m.amount
+      })
+    const top = Object.entries(tot).sort((a, b) => b[1] - a[1])[0]?.[0]
+    setCatGroup(top ?? availableGroups[0])
+  }, [activeMovements, year, catGroup, availableGroups])
+
+  const catData = useMemo(() => {
+    if (!catGroup) return null
+    const kind = catGroup === 'Ingresos' ? 'ingreso' : 'gasto'
+    const inScope = activeMovements.filter(
+      (m) => m.year === year && (catScope === 'año' || m.month === month) && m.group === catGroup
+    )
+    const scopeAll = activeMovements.filter(
+      (m) => m.year === year && (catScope === 'año' || m.month === month) && m.kind === kind
+    )
+    const total = sum(inScope.map((m) => m.amount))
+    const scopeTotal = sum(scopeAll.map((m) => m.amount))
+    const byLabel = {}
+    inScope.forEach((m) => {
+      byLabel[m.label] = byLabel[m.label] || { amount: 0, count: 0 }
+      byLabel[m.label].amount += m.amount
+      byLabel[m.label].count += 1
+    })
+    const rows = Object.entries(byLabel)
+      .map(([label, v]) => ({ label, ...v }))
+      .sort((a, b) => b.amount - a.amount)
+    const now = new Date()
+    const elapsed =
+      year < now.getFullYear() ? 12 : year > now.getFullYear() ? 1 : now.getMonth() + 1
+    return { kind, total, scopeTotal, rows, count: inScope.length, avg: total / elapsed }
+  }, [activeMovements, year, month, catGroup, catScope])
 
   const history = useMemo(() => {
     return years.map((y) => {
@@ -418,6 +466,7 @@ export default function App() {
             {[
               ['mes', 'Mes'],
               ['anual', 'Año'],
+              ['categorias', 'Categorías'],
               ['historico', 'Historial']
             ].map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined} className={`px-4 py-2 font-medium border-r last:border-r-0 border-tinta/15 ${tab === id ? 'bg-tinta text-white font-semibold' : 'hover:bg-papel'}`}>
@@ -452,7 +501,7 @@ export default function App() {
           <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5 sm:p-6">
             <p className="font-slab text-rojo">primera página</p>
             <h2 className="font-slab font-bold text-2xl mt-1">Empieza en un minuto</h2>
-            <p className="text-sm text-tinta/60 mt-1">Aún no hay apuntes. Elige cómo estrenar el cuaderno:</p>
+            <p className="text-sm text-tinta/60 mt-1">Aún no hay movimientos. Elige cómo estrenar el cuaderno:</p>
             <div className="grid sm:grid-cols-2 gap-4 mt-4">
               <div className="border-t-2 border-tinta/70 pt-3">
                 <p className="font-semibold text-sm">1. Anota tu saldo inicial de {year}</p>
@@ -475,7 +524,7 @@ export default function App() {
               </div>
             </div>
             <p className="text-xs text-tinta/50 mt-4">
-              Después pulsa Nuevo asiento para meter el primer gasto o ingreso del mes.
+              Después pulsa Añadir movimiento para meter el primer gasto o ingreso del mes.
             </p>
           </section>
         )}
@@ -494,11 +543,11 @@ export default function App() {
               </dd>
             </div>
             <div className="p-4">
-              <dt className="text-xs text-tinta/55">Haber del año</dt>
+              <dt className="text-xs text-tinta/55">Ingresos del año</dt>
               <dd className="figures mt-1 text-xl font-slab font-semibold text-haber">{eur(totalIncome)}</dd>
             </div>
             <div className="p-4">
-              <dt className="text-xs text-tinta/55">Debe del año</dt>
+              <dt className="text-xs text-tinta/55">Gastos del año</dt>
               <dd className="figures mt-1 text-xl font-slab font-semibold text-rojo">{eur(totalExpense)}</dd>
             </div>
             <div className="p-4">
@@ -527,8 +576,8 @@ export default function App() {
                 </thead>
                 <tbody>
                   {[
-                    ['Haber', incomeByMonth, 'text-haber font-semibold'],
-                    ['Debe', expenseByMonth, 'text-rojo font-semibold'],
+                    ['Ingresos', incomeByMonth, 'text-haber font-semibold'],
+                    ['Gastos', expenseByMonth, 'text-rojo font-semibold'],
                     ['Neto', incomeByMonth.map((v, i) => v - expenseByMonth[i]), 'font-semibold'],
                     ['Acumulado', acumulado, 'italic text-tinta/50']
                   ].map(([label, arr, cls]) => (
@@ -579,7 +628,7 @@ export default function App() {
                       </tr>
                       {!isIncome && (
                         <tr className="text-xs text-tinta/50">
-                          <td className="p-2.5">Tanto del haber</td>
+                          <td className="p-2.5">Tanto del ingreso</td>
                           {total.map((v, i) => (
                             <td key={i} className="p-2.5 text-right">
                               {incomeByMonth[i] ? `${Math.round((v / incomeByMonth[i]) * 100)} %` : '—'}
@@ -615,15 +664,15 @@ export default function App() {
               ))}
             </div>
 
-            {/* Lo característico: el debe del mes, grande, en rojo contable */}
+            {/* Lo característico: el gasto del mes, grande, en rojo contable */}
             <section aria-label={`${MONTHS[month - 1]} de ${year}`} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5 sm:p-8 flex flex-wrap items-end gap-x-10 gap-y-6">
               <div>
-                <p className="font-slab text-rojo text-lg">Debe de {MONTHS[month - 1].toLowerCase()}</p>
+                <p className="font-slab text-rojo text-lg">Gastado en {MONTHS[month - 1].toLowerCase()}</p>
                 <p className="figures font-slab font-bold text-rojo leading-none text-6xl sm:text-7xl mt-1">
                   {eur(monthExpense)}
                 </p>
                 <p className="text-sm text-tinta/55 mt-2">
-                  Haber <span className="figures font-semibold text-haber">{eur(monthIncome)}</span>
+                  Ingresado <span className="figures font-semibold text-haber">{eur(monthIncome)}</span>
                 </p>
               </div>
               <div
@@ -649,7 +698,7 @@ export default function App() {
                 })
                 const max = Math.max(1, ...Object.values(agg))
                 const entries = Object.entries(agg).sort((a, b) => b[1] - a[1])
-                if (!entries.length) return <p className="text-sm text-tinta/55 py-2">Sin gastos este mes. Anota el primero con Nuevo asiento.</p>
+                if (!entries.length) return <p className="text-sm text-tinta/55 py-2">Sin gastos este mes. Anota el primero con Añadir movimiento.</p>
                 return entries.map(([label, v]) => (
                   <div key={label} className="flex items-center gap-3 text-sm py-1.5 border-b border-tinta/10 last:border-b-0">
                     <div className="w-44 shrink-0">
@@ -664,8 +713,8 @@ export default function App() {
                 ))
               })()}
             </section>
-            <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)]" aria-label={`Apuntes de ${MONTHS[month - 1]}`}>
-              {monthMovs.length === 0 && <p className="p-5 text-sm text-tinta/55">No hay apuntes.</p>}
+            <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)]" aria-label={`Movimientos de ${MONTHS[month - 1]}`}>
+              {monthMovs.length === 0 && <p className="p-5 text-sm text-tinta/55">No hay movimientos.</p>}
               {monthMovs.map((m) => (
                 <div key={m.id} className="p-4 flex items-center gap-3 text-sm border-b border-tinta/10 last:border-b-0 hover:bg-boli/[0.03]">
                   <span aria-hidden="true" className={`w-1 self-stretch ${m.kind === 'ingreso' ? 'bg-haber' : 'bg-rojo'}`} />
@@ -683,6 +732,108 @@ export default function App() {
           </div>
         )}
 
+        {tab === 'categorias' && (
+          <div className="space-y-6">
+            <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Elige categoría">
+              {availableGroups.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setCatGroup(g)}
+                  aria-pressed={catGroup === g}
+                  className={`px-3 py-1.5 text-sm border ${
+                    catGroup === g
+                      ? 'bg-tinta text-white border-tinta font-semibold'
+                      : 'bg-white border-tinta/25 hover:border-boli hover:text-boli'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+
+            {catData && (
+              <section
+                className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5 sm:p-6"
+                aria-label={`Desglose de ${catGroup}`}
+              >
+                <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+                  <div>
+                    <p className="font-slab text-lg text-tinta/60">{catGroup}</p>
+                    <p
+                      className={`figures font-slab font-bold leading-none text-5xl sm:text-6xl mt-1 ${
+                        catData.kind === 'ingreso' ? 'text-haber' : 'text-rojo'
+                      }`}
+                    >
+                      {eur(catData.total)}
+                    </p>
+                  </div>
+                  <div
+                    className="flex text-sm border border-tinta/25 bg-white self-start"
+                    role="group"
+                    aria-label="Periodo"
+                  >
+                    {[
+                      ['mes', MONTHS[month - 1].slice(0, 3)],
+                      ['año', String(year)]
+                    ].map(([id, label]) => (
+                      <button
+                        key={id}
+                        onClick={() => setCatScope(id)}
+                        aria-pressed={catScope === id}
+                        className={`px-4 py-1.5 border-r last:border-r-0 border-tinta/15 ${
+                          catScope === id ? 'bg-tinta text-white font-semibold' : 'hover:bg-papel'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-sm text-tinta/55 mt-2">
+                  {catData.count} {catData.count === 1 ? 'movimiento' : 'movimientos'}
+                  {catScope === 'año' && (
+                    <> · media de {eur(catData.avg)} al mes</>
+                  )}
+                  {catData.scopeTotal > 0 && (
+                    <> · supone el {Math.round((catData.total / catData.scopeTotal) * 100)} % de lo {catData.kind === 'ingreso' ? 'ingresado' : 'gastado'} en el periodo</>
+                  )}
+                </p>
+
+                <div className="mt-4 border-t-2 border-tinta/60">
+                  {catData.rows.length === 0 && (
+                    <p className="text-sm text-tinta/55 py-4">
+                      Nada en {catGroup} {catScope === 'mes' ? `en ${MONTHS[month - 1].toLowerCase()}` : `en ${year}`}.
+                    </p>
+                  )}
+                  {catData.rows.map((r) => (
+                    <div
+                      key={r.label}
+                      className="flex items-center gap-3 text-sm py-2.5 border-b border-tinta/10 last:border-b-0"
+                    >
+                      <div className="w-44 shrink-0">
+                        <p className="truncate font-medium">{r.label}</p>
+                        <p className="text-xs text-tinta/50">
+                          {r.count} {r.count === 1 ? 'movimiento' : 'movimientos'}
+                        </p>
+                      </div>
+                      <div className="flex-1 h-3 bg-papel border border-tinta/15 overflow-hidden">
+                        <div
+                          className={`h-full ${catData.kind === 'ingreso' ? 'bg-haber/80' : 'bg-rojo/80'}`}
+                          style={{ width: `${catData.total ? (r.amount / catData.total) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <p className="figures w-28 text-right font-slab font-semibold">{eur(r.amount)}</p>
+                      <p className="figures w-12 text-right text-xs text-tinta/50">
+                        {catData.total ? `${Math.round((r.amount / catData.total) * 100)} %` : '—'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
         {tab === 'historico' && (
           <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5" aria-label="Historial por años">
             <h3 className="font-slab font-semibold text-lg border-b-2 border-tinta/60 pb-2 mb-1">Historial por años</h3>
@@ -690,8 +841,8 @@ export default function App() {
               <thead>
                 <tr className="text-left text-tinta/55 border-b border-tinta/15">
                   <th className="py-2 pr-2 font-medium">Año</th>
-                  <th className="p-2 text-right font-medium">Haber</th>
-                  <th className="p-2 text-right font-medium">Debe</th>
+                  <th className="p-2 text-right font-medium">Ingresos</th>
+                  <th className="p-2 text-right font-medium">Gastos</th>
                   <th className="p-2 text-right font-medium">Neto</th>
                 </tr>
               </thead>
@@ -726,7 +877,7 @@ export default function App() {
         className="stamp fixed bottom-6 right-6 z-20 bg-boli text-white font-semibold pl-4 pr-5 py-3 -rotate-2 hover:rotate-0 active:scale-95 transition shadow-[3px_3px_0_0_rgba(29,42,77,0.25)]"
       >
         <span aria-hidden="true" className="font-slab font-bold text-xl leading-none mr-2">+</span>
-        Nuevo asiento
+        Añadir movimiento
       </button>
       {showForm && (
         <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-20 max-h-[70vh] overflow-auto">
@@ -739,9 +890,9 @@ export default function App() {
         <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-30">
           <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-lg max-h-[85vh] overflow-auto">
             <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-4 pb-3">
-              <h2 className="font-slab font-semibold text-xl">Traer {preview.fileName}</h2>
+              <h2 className="font-slab font-semibold text-xl">Importar {preview.fileName}</h2>
               <p className="text-sm text-tinta/60 mt-1">
-                Revisa los totales antes de copiarlo al cuaderno. Cada celda entra como un apunte el día 15 de su mes.
+                Revisa los totales antes de pasarlo al cuaderno. Cada celda entra como un movimiento el día 15 de su mes.
               </p>
             </div>
             <div className="p-5 space-y-3">
@@ -749,9 +900,9 @@ export default function App() {
               <thead>
                 <tr className="text-left text-tinta/55 border-b border-tinta/15">
                   <th className="py-2 pr-2 font-medium">Página</th>
-                  <th className="p-2 text-right font-medium">Apuntes</th>
-                  <th className="p-2 text-right font-medium">Haber</th>
-                  <th className="p-2 text-right font-medium">Debe</th>
+                  <th className="p-2 text-right font-medium">Movimientos</th>
+                  <th className="p-2 text-right font-medium">Ingresos</th>
+                  <th className="p-2 text-right font-medium">Gastos</th>
                   <th className="p-2 text-right font-medium">Saldo ini.</th>
                 </tr>
               </thead>
@@ -783,7 +934,7 @@ export default function App() {
                 disabled={importing}
                 className="flex-1 bg-tinta text-white py-2 font-semibold hover:bg-boli active:scale-[0.98] transition disabled:opacity-50"
               >
-                {importing ? 'Copiando…' : `Copiar ${preview.movements.length} apuntes`}
+                {importing ? 'Importando…' : `Importar ${preview.movements.length} movimientos`}
               </button>
             </div>
             </div>
