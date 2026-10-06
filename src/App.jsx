@@ -163,30 +163,31 @@ function InstallButton() {
         Instalar app
       </button>
       {help && (
-        <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-30">
-          <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-md">
-            <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-4 pb-3">
-              <h2 className="font-slab font-semibold text-xl">Instalar la app</h2>
+        <div className="fixed inset-0 bg-tinta/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-white shadow-[4px_4px_0_0_rgba(0,0,0,0.35)] w-full max-w-md text-center">
+            <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-5 pb-4">
+              <p className="font-slab text-rojo">llévalo contigo</p>
+              <h2 className="font-slab font-bold text-2xl mt-1">Instalar la app</h2>
+              <p className="text-sm text-tinta/60 mt-2">
+                El navegador no deja poner el icono solo: se instala desde su menú. Instalada tendrás
+                el atajo con pulsación larga y podrás compartirle gastos desde el banco.
+              </p>
             </div>
-            <div className="p-5 space-y-3 text-sm">
-              <p>
-                El navegador no deja poner el icono solo: se instala desde su menú. Al tenerla
-                instalada tendrás el atajo con pulsación larga y podrás compartirle gastos desde el banco.
-              </p>
-              <p>
-                <b>Android (Chrome):</b> menú ⋮, Instalar app o Añadir a pantalla de inicio.
-              </p>
-              <p>
-                <b>iPhone (Safari):</b> Compartir, Añadir a pantalla de inicio.
-              </p>
-              <div className="flex">
-                <button
-                  onClick={() => setHelp(false)}
-                  className="flex-1 border border-tinta/30 py-2 font-semibold hover:border-tinta"
-                >
-                  Entendido
-                </button>
+            <div className="p-5 space-y-0 text-sm text-left">
+              <div className="flex gap-3 py-3 border-b border-tinta/10">
+                <span className="font-slab font-bold text-lg leading-none text-boli">1</span>
+                <p><b>Android (Chrome):</b> menú ⋮, Instalar app o Añadir a pantalla de inicio.</p>
               </div>
+              <div className="flex gap-3 py-3">
+                <span className="font-slab font-bold text-lg leading-none text-boli">2</span>
+                <p><b>iPhone (Safari):</b> Compartir, Añadir a pantalla de inicio.</p>
+              </div>
+              <button
+                onClick={() => setHelp(false)}
+                className="stamp w-full text-boli py-2.5 font-semibold hover:bg-boli hover:text-white active:scale-[0.98] transition"
+              >
+                Entendido
+              </button>
             </div>
           </div>
         </div>
@@ -584,7 +585,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-28">
-      <header className="sticky top-0 z-10 bg-papel/95 backdrop-blur border-b-[3px] border-double border-tinta/40">
+      <header className="sticky top-0 z-40 bg-papel/95 backdrop-blur border-b-[3px] border-double border-tinta/40">
         <div className="max-w-6xl mx-auto px-4 sm:pl-8 py-3 flex items-center gap-3 flex-wrap">
           <div className="leading-none">
             <p className="font-slab text-rojo text-sm">cuaderno de cuentas</p>
@@ -611,7 +612,7 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-2 text-sm">
+          <div className="ml-auto flex items-center gap-2 text-sm w-full sm:w-auto justify-start border-t border-tinta/15 pt-2 sm:border-t-0 sm:pt-0">
             <span className="text-tinta/55 hidden md:inline">{demo ? 'modo demo' : user?.email}</span>
             <InstallButton />
             <button
@@ -712,7 +713,7 @@ export default function App() {
                 </colgroup>
                 <thead>
                   <tr>
-                    <th className="sticky left-0 top-0 z-20 bg-papel text-left p-2.5 font-medium text-tinta/60 border-b-2 border-r border-tinta/60"></th>
+                    <th className="sticky left-0 top-0 z-30 bg-papel text-left p-2.5 font-medium text-tinta/60 border-b-2 border-r border-tinta/60"></th>
                     {MONTHS.map((m, i) => (
                       <th key={m} className={`sticky top-0 z-10 p-2.5 text-right border-b-2 border-tinta/60 ${i === month - 1 ? 'bg-[#dfe6fb] text-boli font-semibold' : 'bg-papel font-medium text-tinta/60'}`}>{m.slice(0, 3)}</th>
                     ))}
@@ -763,11 +764,11 @@ export default function App() {
                     </colgroup>
                     <thead>
                       <tr>
-                        <th className="sticky left-0 z-20 bg-white p-2 font-medium border-b border-r border-tinta/20"></th>
+                        <th className="sticky left-0 top-0 z-30 bg-white p-2 font-medium border-b border-r border-tinta/20"></th>
                         {MONTHS.map((m, i) => (
-                          <th key={m} className={`p-2 text-right font-medium border-b border-tinta/20 ${i === month - 1 ? 'bg-[#dfe6fb] text-boli font-semibold' : 'bg-white text-tinta/50'}`}>{m.slice(0, 3)}</th>
+                          <th key={m} className={`sticky top-0 z-10 p-2 text-right font-medium border-b border-tinta/20 ${i === month - 1 ? 'bg-[#dfe6fb] text-boli font-semibold' : 'bg-white text-tinta/50'}`}>{m.slice(0, 3)}</th>
                         ))}
-                        <th className="p-2 text-right font-medium text-tinta/50 bg-white border-b border-tinta/20">Total</th>
+                        <th className="sticky top-0 z-10 p-2 text-right font-medium text-tinta/50 bg-white border-b border-tinta/20">Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1046,20 +1047,20 @@ export default function App() {
           setShowForm(!showForm)
         }}
         aria-expanded={showForm}
-        className="stamp fixed bottom-6 right-6 z-20 bg-boli text-white font-semibold pl-4 pr-5 py-3 -rotate-2 hover:rotate-0 active:scale-95 transition shadow-[3px_3px_0_0_rgba(29,42,77,0.25)]"
+        className="stamp fixed bottom-6 right-6 z-40 bg-boli text-white font-semibold pl-4 pr-5 py-3 -rotate-2 hover:rotate-0 active:scale-95 transition shadow-[3px_3px_0_0_rgba(29,42,77,0.25)]"
       >
         <span aria-hidden="true" className="font-slab font-bold text-xl leading-none mr-2">+</span>
         Añadir movimiento
       </button>
       {showForm && (
-        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-20 max-h-[70vh] overflow-auto">
+        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-40 max-h-[70vh] overflow-auto">
           <MovementForm onSave={saveMovement} initial={prefill ?? undefined} />
         </div>
       )}
 
       {/* Vista previa de importación del Excel */}
       {preview && (
-        <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-30">
+        <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-lg max-h-[85vh] overflow-auto">
             <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-4 pb-3">
               <h2 className="font-slab font-semibold text-xl">Importar {preview.fileName}</h2>
