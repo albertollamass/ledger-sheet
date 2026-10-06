@@ -89,6 +89,84 @@ function Login({ onDemo }) {
   )
 }
 
+function InstallButton() {
+  const [deferred, setDeferred] = useState(null)
+  const [help, setHelp] = useState(false)
+  const [installed, setInstalled] = useState(
+    () =>
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+  )
+
+  useEffect(() => {
+    const onPrompt = (e) => {
+      e.preventDefault()
+      setDeferred(e)
+    }
+    const onInstalled = () => {
+      setInstalled(true)
+      setDeferred(null)
+    }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
+  }, [])
+
+  if (installed) return null
+
+  return (
+    <>
+      <button
+        onClick={async () => {
+          if (deferred) {
+            deferred.prompt()
+            await deferred.userChoice.catch(() => {})
+            setDeferred(null)
+          } else {
+            setHelp(true)
+          }
+        }}
+        title="Pon la app en tu pantalla de inicio"
+        className="border border-boli text-boli px-3 py-1.5 font-semibold hover:bg-boli hover:text-white active:scale-95 transition"
+      >
+        Instalar app
+      </button>
+      {help && (
+        <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-30">
+          <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-md">
+            <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-4 pb-3">
+              <h2 className="font-slab font-semibold text-xl">Instalar la app</h2>
+            </div>
+            <div className="p-5 space-y-3 text-sm">
+              <p>
+                El navegador no deja poner el icono solo: se instala desde su menú. Al tenerla
+                instalada tendrás el atajo con pulsación larga y podrás compartirle gastos desde el banco.
+              </p>
+              <p>
+                <b>Android (Chrome):</b> menú ⋮, Instalar app o Añadir a pantalla de inicio.
+              </p>
+              <p>
+                <b>iPhone (Safari):</b> Compartir, Añadir a pantalla de inicio.
+              </p>
+              <div className="flex">
+                <button
+                  onClick={() => setHelp(false)}
+                  className="flex-1 border border-tinta/30 py-2 font-semibold hover:border-tinta"
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 function BalanceInput({ value, onSave, inputClassName }) {
   const fmt = (v) => (v === undefined || v === null || v === '' ? '' : String(v))
   const [draft, setDraft] = useState(fmt(value))
@@ -501,6 +579,7 @@ export default function App() {
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm">
             <span className="text-tinta/55 hidden md:inline">{demo ? 'modo demo' : user?.email}</span>
+            <InstallButton />
             <button
               onClick={() => fileRef.current?.click()}
               disabled={importing}
