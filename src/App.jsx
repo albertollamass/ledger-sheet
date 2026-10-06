@@ -163,8 +163,9 @@ function InstallButton() {
         Instalar app
       </button>
       {help && (
-        <div className="fixed inset-0 bg-tinta/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-white shadow-[4px_4px_0_0_rgba(0,0,0,0.35)] w-full max-w-md text-center">
+        <div className="fixed top-0 left-0 w-full z-50 overflow-y-auto bg-tinta/70" style={{ height: '100dvh' }}>
+          <div className="min-h-full flex items-center justify-center p-4">
+          <div className="bg-white shadow-[4px_4px_0_0_rgba(0,0,0,0.35)] w-full max-w-md text-center my-auto">
             <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-5 pb-4">
               <p className="font-slab text-rojo">llévalo contigo</p>
               <h2 className="font-slab font-bold text-2xl mt-1">Instalar la app</h2>
@@ -189,6 +190,7 @@ function InstallButton() {
                 Entendido
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
@@ -1060,8 +1062,9 @@ export default function App() {
 
       {/* Vista previa de importación del Excel */}
       {preview && (
-        <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-lg max-h-[85vh] overflow-auto">
+        <div className="fixed top-0 left-0 w-full z-50 overflow-y-auto bg-tinta/50" style={{ height: '100dvh' }}>
+          <div className="min-h-full flex items-center justify-center p-4">
+          <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-lg max-h-[85vh] overflow-auto my-auto">
             <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-4 pb-3">
               <h2 className="font-slab font-semibold text-xl">Importar {preview.fileName}</h2>
               <p className="text-sm text-tinta/60 mt-1">
@@ -1111,6 +1114,7 @@ export default function App() {
               </button>
             </div>
             </div>
+          </div>
           </div>
         </div>
       )}
