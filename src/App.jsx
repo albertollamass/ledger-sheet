@@ -387,7 +387,7 @@ export default function App() {
       return !v
     })
   }
-  const fmt = (n) => (privateMode ? '****' : fmt(n))
+  const fmt = (n) => (privateMode ? '****' : eur(n))
   const fileRef = useRef(null)
   const local = useLocalDemo()
 
