@@ -54,14 +54,18 @@ function Login({ onDemo }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold">Ingresos y Gastos</h1>
-        <p className="text-sm text-slate-500 mt-1">Tu plantilla de Excel, ahora en web con Firebase.</p>
+      <div className="bg-white w-full max-w-md px-8 py-10 ledger-margin shadow-[4px_4px_0_0_rgba(29,42,77,0.12)]">
+        <p className="font-slab text-lg text-rojo">cuaderno de cuentas</p>
+        <h1 className="font-slab font-bold text-4xl leading-tight mt-1">Ingresos y gastos</h1>
+        <p className="text-sm text-tinta/60 mt-2">
+          Apunta cada gasto, mira el mes de un vistazo y guarda el historial por años.
+        </p>
+        <hr className="border-t border-tinta/15 mt-5" />
         {!isFirebaseConfigured && (
-          <div className="mt-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded p-3">
+          <div className="mt-5 bg-amber-50 border border-amber-300 text-amber-900 text-sm p-3">
             Firebase no configurado. Puedes probar en <b>modo demo local</b> o seguir la guía{' '}
             <code>FIREBASE_SETUP.md</code> para conectar tu proyecto.
-            <button onClick={onDemo} className="mt-2 w-full bg-amber-500 text-white rounded py-2 font-semibold">
+            <button onClick={onDemo} className="mt-2 w-full bg-amber-500 text-white py-2 font-semibold">
               Entrar en modo demo
             </button>
           </div>
@@ -70,13 +74,13 @@ function Login({ onDemo }) {
           <div className="mt-6 space-y-3">
             <button
               onClick={loginGoogle}
-              className="w-full bg-white border border-slate-300 rounded-lg py-2.5 font-semibold flex items-center justify-center gap-2 hover:bg-slate-50"
+              className="stamp w-full text-boli py-2.5 font-semibold flex items-center justify-center gap-2 hover:bg-boli hover:text-white active:scale-[0.98] transition"
             >
-              <span className="text-lg">G</span> Continuar con Google
+              <span className="font-slab font-bold text-lg leading-none">G</span> Continuar con Google
             </button>
-            {err && <p className="text-red-600 text-sm">{err}</p>}
-            <p className="text-xs text-slate-400 text-center">
-              Solo tú podrás ver tus datos. Activa Google en Firebase → Authentication → Google.
+            {err && <p className="text-rojo text-sm">{err}</p>}
+            <p className="text-xs text-tinta/50 text-center">
+              Solo tú verás tus datos. Activa Google en Firebase, Authentication, Google.
             </p>
           </div>
         )}
@@ -109,7 +113,7 @@ function BalanceInput({ value, onSave, inputClassName }) {
         className={inputClassName}
       />
       {dirty && (
-        <button onClick={commit} className="text-xs bg-slate-900 text-white px-2 py-1 rounded-lg shrink-0">
+        <button onClick={commit} className="text-xs bg-tinta text-white px-2 py-1 shrink-0 hover:bg-boli active:scale-95 transition">
           Guardar
         </button>
       )}
@@ -137,7 +141,7 @@ function MovementForm({ onSave, initial }) {
 
   return (
     <form
-      className="bg-white rounded-2xl shadow p-4 space-y-3"
+      className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)]"
       onSubmit={(e) => {
         e.preventDefault()
         const d = new Date(date + 'T12:00:00')
@@ -155,38 +159,70 @@ function MovementForm({ onSave, initial }) {
         setNote('')
       }}
     >
-      <div className="flex gap-2">
-        {['gasto', 'ingreso'].map((k) => (
+      <div className="border-b-[3px] border-double border-tinta/30 px-4 pt-4 pb-3">
+        <h2 className="font-slab font-semibold text-xl">Nuevo asiento</h2>
+        <p className="text-xs text-tinta/55">Cada apunte cae en su mes y su tipo.</p>
+      </div>
+      <div className="p-4 space-y-4">
+      <div className="grid grid-cols-2 border border-tinta/25" role="group" aria-label="Tipo de apunte">
+        {[
+          ['gasto', 'Debe', 'sale dinero'],
+          ['ingreso', 'Haber', 'entra dinero']
+        ].map(([k, title, sub]) => (
           <button
             key={k}
             type="button"
             onClick={() => setKind(k)}
-            className={`flex-1 rounded-lg py-2 font-semibold capitalize ${
-              kind === k ? (k === 'gasto' ? 'bg-red-600 text-white' : 'bg-green-600 text-white') : 'bg-slate-100'
+            aria-pressed={kind === k}
+            className={`py-2 px-1 text-left ${
+              kind === k
+                ? k === 'gasto'
+                  ? 'bg-rojo text-white'
+                  : 'bg-haber text-white'
+                : 'bg-white hover:bg-papel'
             }`}
           >
-            {k}
+            <span className="block font-slab font-semibold leading-none">{title}</span>
+            <span className={`block text-[11px] mt-0.5 ${kind === k ? 'text-white/80' : 'text-tinta/50'}`}>{sub}</span>
           </button>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <select value={group} onChange={(e) => { setGroup(e.target.value); setLabel((groups.find(g=>g.group===e.target.value)?.items ?? [])[0] ?? '') }} className="border rounded-lg px-2 py-2">
-          {groups.map((g) => (
-            <option key={g.group} value={g.group}>{g.group}</option>
-          ))}
-        </select>
-        <select value={label} onChange={(e) => setLabel(e.target.value)} className="border rounded-lg px-2 py-2">
-          {currentGroup.items.map((i) => (
-            <option key={i} value={i}>{i}</option>
-          ))}
-        </select>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="block text-xs text-tinta/55 mb-1">Grupo</span>
+          <select value={group} onChange={(e) => { setGroup(e.target.value); setLabel((groups.find(g=>g.group===e.target.value)?.items ?? [])[0] ?? '') }} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm">
+            {groups.map((g) => (
+              <option key={g.group} value={g.group}>{g.group}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="block text-xs text-tinta/55 mb-1">Tipo</span>
+          <select value={label} onChange={(e) => setLabel(e.target.value)} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm">
+            {currentGroup.items.map((i) => (
+              <option key={i} value={i}>{i}</option>
+            ))}
+          </select>
+        </label>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <input required type="number" step="0.01" min="0" placeholder="Importe €" value={amount} onChange={(e) => setAmount(e.target.value)} className="border rounded-lg px-3 py-2" />
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border rounded-lg px-3 py-2" />
+      <div className="grid grid-cols-2 gap-3">
+        <label className="block">
+          <span className="block text-xs text-tinta/55 mb-1">Importe en euros</span>
+          <input required type="number" step="0.01" min="0" placeholder="0,00" value={amount} onChange={(e) => setAmount(e.target.value)} className="figures w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 font-slab font-semibold text-lg" />
+        </label>
+        <label className="block">
+          <span className="block text-xs text-tinta/55 mb-1">Fecha</span>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm" />
+        </label>
       </div>
-      <input placeholder="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} className="border rounded-lg px-3 py-2 w-full" />
-      <button className="w-full bg-slate-900 text-white rounded-lg py-2 font-semibold">Guardar {kind}</button>
+      <label className="block">
+        <span className="block text-xs text-tinta/55 mb-1">Nota (si quieres)</span>
+        <input placeholder="Café con…" value={note} onChange={(e) => setNote(e.target.value)} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm placeholder:text-tinta/30" />
+      </label>
+      <button className="stamp w-full text-boli py-2.5 font-semibold hover:bg-boli hover:text-white active:scale-[0.98] transition">
+        Anotar en el {kind === 'gasto' ? 'debe' : 'haber'}
+      </button>
+      </div>
     </form>
   )
 }
@@ -198,7 +234,7 @@ export default function App() {
   const [balances, setBalances] = useState({})
   const [year, setYear] = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [tab, setTab] = useState('anual') // anual | mes | historico
+  const [tab, setTab] = useState('mes') // mes | anual | historico
   const [showForm, setShowForm] = useState(false)
   const [importing, setImporting] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -362,44 +398,47 @@ export default function App() {
   if (!user && !demo && !isFirebaseConfigured) return <Login onDemo={() => setDemo(true)} />
 
   return (
-    <div className="min-h-screen pb-24">
-      <header className="bg-slate-900 text-white sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
-          <h1 className="font-bold text-lg">Ingresos y Gastos</h1>
-          <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
-            <button onClick={() => setYear((y) => y - 1)} className="px-2">‹</button>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="bg-slate-800 font-bold px-2">
+    <div className="min-h-screen pb-28">
+      <header className="sticky top-0 z-10 bg-papel/95 backdrop-blur border-b-[3px] border-double border-tinta/40">
+        <div className="max-w-6xl mx-auto px-4 sm:pl-8 py-3 flex items-center gap-3 flex-wrap">
+          <div className="leading-none">
+            <p className="font-slab text-rojo text-sm">cuaderno de cuentas</p>
+            <h1 className="font-slab font-bold text-xl">Ingresos y gastos</h1>
+          </div>
+          <div className="flex items-center gap-1 border border-tinta/25 bg-white px-1">
+            <button onClick={() => setYear((y) => y - 1)} className="px-2 py-1 hover:text-boli" aria-label="Año anterior">‹</button>
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="figures font-slab font-semibold text-lg bg-transparent py-1" aria-label="Año">
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
-            <button onClick={() => setYear((y) => y + 1)} className="px-2">›</button>
+            <button onClick={() => setYear((y) => y + 1)} className="px-2 py-1 hover:text-boli" aria-label="Año siguiente">›</button>
           </div>
-          <nav className="flex gap-1 text-sm">
+          <nav className="flex text-sm border border-tinta/25 bg-white" aria-label="Vistas">
             {[
-              ['anual', 'Anual'],
-              ['mes', 'Por mes'],
-              ['historico', 'Histórico']
+              ['mes', 'Mes'],
+              ['anual', 'Año'],
+              ['historico', 'Historial']
             ].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id)} className={`px-3 py-1.5 rounded-lg ${tab === id ? 'bg-white text-slate-900 font-semibold' : 'bg-slate-800'}`}>
+              <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined} className={`px-4 py-2 font-medium border-r last:border-r-0 border-tinta/15 ${tab === id ? 'bg-tinta text-white font-semibold' : 'hover:bg-papel'}`}>
                 {label}
               </button>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm">
-            <span className="opacity-70">{demo ? 'modo demo' : user?.email}</span>
+            <span className="text-tinta/55 hidden md:inline">{demo ? 'modo demo' : user?.email}</span>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={importing}
               title="Sube tu Excel (hojas por año) para empezar a usar la web"
-              className="bg-green-700 px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50"
+              className="border border-haber text-haber px-3 py-1.5 font-semibold hover:bg-haber hover:text-white active:scale-95 transition disabled:opacity-50"
             >
-              {importing ? 'Importando…' : '📥 Importar Excel'}
+              {importing ? 'Importando…' : 'Importar Excel'}
             </button>
             <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={onFileChosen} />
             <button
               onClick={() => (demo ? setDemo(false) : signOut(auth))}
-              className="bg-slate-700 px-3 py-1.5 rounded-lg"
+              className="text-tinta/60 px-2 py-1.5 underline decoration-tinta/30 underline-offset-4 hover:text-rojo"
             >
               Salir
             </button>
@@ -407,98 +446,103 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 mt-4 space-y-4">
+      <main className="max-w-6xl mx-auto px-4 sm:pl-8 mt-6 space-y-8 ledger-margin sm:ml-4">
         {/* Bienvenida para quien empieza de cero (sin movimientos) */}
         {activeMovements.length === 0 && (
-          <div className="bg-white rounded-2xl shadow p-5 border-2 border-dashed border-slate-300">
-            <h2 className="font-bold text-lg">👋 Empieza en 1 minuto</h2>
-            <p className="text-sm text-slate-500">Aún no tienes movimientos. Elige cómo empezar:</p>
-            <div className="grid sm:grid-cols-2 gap-3 mt-3">
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="font-semibold text-sm">1. Pon tu saldo inicial de {year}</div>
-                <p className="text-xs text-slate-500 mb-2">Lo que tienes ahora mismo entre cuentas y efectivo.</p>
+          <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5 sm:p-6">
+            <p className="font-slab text-rojo">primera página</p>
+            <h2 className="font-slab font-bold text-2xl mt-1">Empieza en un minuto</h2>
+            <p className="text-sm text-tinta/60 mt-1">Aún no hay apuntes. Elige cómo estrenar el cuaderno:</p>
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              <div className="border-t-2 border-tinta/70 pt-3">
+                <p className="font-semibold text-sm">1. Anota tu saldo inicial de {year}</p>
+                <p className="text-xs text-tinta/55 mb-2">Lo que tienes ahora entre cuentas y efectivo.</p>
                 <BalanceInput
                   value={activeBalances[String(year)]}
                   onSave={saveBalance}
-                  inputClassName="border rounded-lg px-3 py-2 w-full font-bold"
+                  inputClassName="figures border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 w-full font-slab font-semibold text-lg"
                 />
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <div className="font-semibold text-sm">2. ¿Vienes del Excel?</div>
-                <p className="text-xs text-slate-500 mb-2">Sube tu archivo y traemos tus años e historial.</p>
+              <div className="border-t-2 border-tinta/70 pt-3">
+                <p className="font-semibold text-sm">2. Trae tu Excel</p>
+                <p className="text-xs text-tinta/55 mb-2">Sube el archivo y copiamos tus años e historial.</p>
                 <button
                   onClick={() => fileRef.current?.click()}
-                  className="bg-green-700 text-white rounded-lg px-4 py-2 text-sm font-semibold"
+                  className="border border-haber text-haber px-4 py-2 text-sm font-semibold hover:bg-haber hover:text-white active:scale-95 transition"
                 >
-                  📥 Subir mi Excel
+                  Subir mi Excel
                 </button>
               </div>
             </div>
-            <p className="text-xs text-slate-400 mt-3">
-              Después pulsa <b>+</b> para meter tu primer gasto o ingreso del mes.
+            <p className="text-xs text-tinta/50 mt-4">
+              Después pulsa Nuevo asiento para meter el primer gasto o ingreso del mes.
             </p>
-          </div>
+          </section>
         )}
 
-        {/* Resumen superior como Excel */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          <div className="bg-white rounded-xl p-3 shadow">
-            <div className="text-xs text-slate-500">Saldo inicial {year}</div>
-            <BalanceInput
-              value={activeBalances[String(year)]}
-              onSave={saveBalance}
-              inputClassName="text-xl font-bold w-full bg-transparent"
-            />
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow">
-            <div className="text-xs text-slate-500">Total ingresos</div>
-            <div className="text-xl font-bold text-green-700">{eur(totalIncome)}</div>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow">
-            <div className="text-xs text-slate-500">Total gastos</div>
-            <div className="text-xl font-bold text-red-700">{eur(totalExpense)}</div>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow">
-            <div className="text-xs text-slate-500">Neto</div>
-            <div className={`text-xl font-bold ${net >= 0 ? 'text-green-700' : 'text-red-700'}`}>{eur(net)}</div>
-          </div>
-          <div className="bg-white rounded-xl p-3 shadow">
-            <div className="text-xs text-slate-500">Acumulado dic</div>
-            <div className="text-xl font-bold">{eur(acumulado[11] ?? initial)}</div>
-          </div>
-        </div>
+        {/* Cabecera del año, como el encabezado del Excel */}
+        <section aria-label={`Resumen de ${year}`} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)]">
+          <dl className="grid grid-cols-2 md:grid-cols-5 divide-x divide-tinta/10">
+            <div className="p-4">
+              <dt className="text-xs text-tinta/55">Saldo inicial {year}</dt>
+              <dd className="mt-1">
+                <BalanceInput
+                  value={activeBalances[String(year)]}
+                  onSave={saveBalance}
+                  inputClassName="figures text-xl font-slab font-semibold w-full bg-transparent"
+                />
+              </dd>
+            </div>
+            <div className="p-4">
+              <dt className="text-xs text-tinta/55">Haber del año</dt>
+              <dd className="figures mt-1 text-xl font-slab font-semibold text-haber">{eur(totalIncome)}</dd>
+            </div>
+            <div className="p-4">
+              <dt className="text-xs text-tinta/55">Debe del año</dt>
+              <dd className="figures mt-1 text-xl font-slab font-semibold text-rojo">{eur(totalExpense)}</dd>
+            </div>
+            <div className="p-4">
+              <dt className="text-xs text-tinta/55">Neto</dt>
+              <dd className={`figures mt-1 text-xl font-slab font-semibold ${net >= 0 ? 'text-haber' : 'text-rojo'}`}>{eur(net)}</dd>
+            </div>
+            <div className="p-4 col-span-2 md:col-span-1">
+              <dt className="text-xs text-tinta/55">Acumulado a diciembre</dt>
+              <dd className="figures mt-1 text-xl font-slab font-semibold">{eur(acumulado[11] ?? initial)}</dd>
+            </div>
+          </dl>
+        </section>
 
         {tab === 'anual' && (
           <>
-            <div className="bg-white rounded-xl shadow overflow-x-auto">
-              <table className="w-full text-sm min-w-[900px]">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="text-left p-2"></th>
+            <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={`Meses de ${year}`}>
+              <table className="figures w-full text-sm min-w-[900px] border-collapse">
+                <thead className="sticky top-0">
+                  <tr className="bg-papel border-b-2 border-tinta/60">
+                    <th className="text-left p-2.5 font-medium text-tinta/60"></th>
                     {MONTHS.map((m) => (
-                      <th key={m} className="p-2 text-right font-semibold">{m.slice(0, 3)}</th>
+                      <th key={m} className="p-2.5 text-right font-medium text-tinta/60">{m.slice(0, 3)}</th>
                     ))}
-                    <th className="p-2 text-right">Total</th>
+                    <th className="p-2.5 text-right font-medium text-tinta/60">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    ['Total Ingresos', incomeByMonth, 'text-green-700 font-bold'],
-                    ['Total Gastos', expenseByMonth, 'text-red-700 font-bold'],
-                    ['Neto', incomeByMonth.map((v, i) => v - expenseByMonth[i]), 'font-bold'],
-                    ['Acumulado', acumulado, 'italic text-slate-500']
+                    ['Haber', incomeByMonth, 'text-haber font-semibold'],
+                    ['Debe', expenseByMonth, 'text-rojo font-semibold'],
+                    ['Neto', incomeByMonth.map((v, i) => v - expenseByMonth[i]), 'font-semibold'],
+                    ['Acumulado', acumulado, 'italic text-tinta/50']
                   ].map(([label, arr, cls]) => (
-                    <tr key={label} className="border-t">
-                      <td className="p-2 font-semibold">{label}</td>
+                    <tr key={label} className="border-b border-tinta/10 hover:bg-boli/[0.04]">
+                      <td className="p-2.5 font-slab font-semibold">{label}</td>
                       {arr.map((v, i) => (
-                        <td key={i} className={`p-2 text-right ${cls}`}>{eur(v)}</td>
+                        <td key={i} className={`p-2.5 text-right ${cls}`}>{eur(v)}</td>
                       ))}
-                      <td className={`p-2 text-right ${cls}`}>{label === 'Acumulado' ? '' : eur(sum(arr.slice(0, label === 'Neto' ? 12 : 12)))}</td>
+                      <td className={`p-2.5 text-right ${cls}`}>{label === 'Acumulado' ? '' : eur(sum(arr))}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </section>
 
             {/* Desglose por grupos como el Excel (fijos + cualquiera que venga de los datos) */}
             {(() => {
@@ -513,75 +557,91 @@ export default function App() {
               rows.forEach((r) => r.months.forEach((v, i) => (total[i] += v)))
               const isIncome = INCOME_GROUPS.some((g) => g.group === group)
               return (
-                <div key={group} className="bg-white rounded-xl shadow overflow-x-auto">
-                  <div className="px-3 pt-3 font-bold">{group}</div>
-                  <table className="w-full text-sm min-w-[900px]">
+                <section key={group} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={group}>
+                  <h3 className="font-slab font-semibold text-lg px-4 pt-4 pb-2 border-b-2 border-tinta/60">{group}</h3>
+                  <table className="figures w-full text-sm min-w-[900px] border-collapse">
                     <tbody>
                       {rows.map((r) => (
-                        <tr key={r.label} className="border-t">
-                          <td className="p-2 w-48">{r.label}</td>
+                        <tr key={r.label} className="border-b border-tinta/10 hover:bg-boli/[0.04]">
+                          <td className="p-2.5 w-52">{r.label}</td>
                           {r.months.map((v, i) => (
-                            <td key={i} className="p-2 text-right text-slate-600">{v ? eur(v) : ''}</td>
+                            <td key={i} className="p-2.5 text-right text-tinta/60">{v ? eur(v) : ''}</td>
                           ))}
-                          <td className="p-2 text-right font-semibold">{eur(sum(r.months))}</td>
+                          <td className="p-2.5 text-right font-semibold">{eur(sum(r.months))}</td>
                         </tr>
                       ))}
-                      <tr className="border-t bg-slate-50 font-bold">
-                        <td className="p-2">Total {group}</td>
+                      <tr className="border-b-2 border-tinta/60 font-semibold bg-papel/60">
+                        <td className="p-2.5 font-slab">Total {group}</td>
                         {total.map((v, i) => (
-                          <td key={i} className="p-2 text-right">{eur(v)}</td>
+                          <td key={i} className="p-2.5 text-right">{eur(v)}</td>
                         ))}
-                        <td className="p-2 text-right">{eur(sum(total))}</td>
+                        <td className="p-2.5 text-right">{eur(sum(total))}</td>
                       </tr>
                       {!isIncome && (
-                        <tr className="border-t text-xs text-slate-500">
-                          <td className="p-2">% de Ingreso</td>
+                        <tr className="text-xs text-tinta/50">
+                          <td className="p-2.5">Tanto del haber</td>
                           {total.map((v, i) => (
-                            <td key={i} className="p-2 text-right">
-                              {incomeByMonth[i] ? `${Math.round((v / incomeByMonth[i]) * 100)}%` : '-'}
+                            <td key={i} className="p-2.5 text-right">
+                              {incomeByMonth[i] ? `${Math.round((v / incomeByMonth[i]) * 100)} %` : '—'}
                             </td>
                           ))}
-                          <td className="p-2 text-right">{totalIncome ? `${Math.round((sum(total) / totalIncome) * 100)}%` : '-'}</td>
+                          <td className="p-2.5 text-right">{totalIncome ? `${Math.round((sum(total) / totalIncome) * 100)} %` : '—'}</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
-                </div>
+                </section>
               )
             })}
           </>
         )}
 
         {tab === 'mes' && (
-          <div className="space-y-3">
-            <div className="flex gap-1 flex-wrap">
+          <div className="space-y-6">
+            <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Mes">
               {MONTHS.map((m, i) => (
                 <button
                   key={m}
                   onClick={() => setMonth(i + 1)}
-                  className={`px-3 py-1.5 rounded-lg text-sm ${month === i + 1 ? 'bg-slate-900 text-white font-semibold' : 'bg-white shadow'}`}
+                  aria-pressed={month === i + 1}
+                  className={`px-3 py-1.5 text-sm border ${
+                    month === i + 1
+                      ? 'bg-tinta text-white border-tinta font-semibold'
+                      : 'bg-white border-tinta/25 hover:border-boli hover:text-boli'
+                  }`}
                 >
                   {m.slice(0, 3)}
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white rounded-xl p-3 shadow text-center">
-                <div className="text-xs">Ingresos {MONTHS[month - 1]}</div>
-                <div className="font-bold text-green-700 text-lg">{eur(monthIncome)}</div>
+
+            {/* Lo característico: el debe del mes, grande, en rojo contable */}
+            <section aria-label={`${MONTHS[month - 1]} de ${year}`} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5 sm:p-8 flex flex-wrap items-end gap-x-10 gap-y-6">
+              <div>
+                <p className="font-slab text-rojo text-lg">Debe de {MONTHS[month - 1].toLowerCase()}</p>
+                <p className="figures font-slab font-bold text-rojo leading-none text-6xl sm:text-7xl mt-1">
+                  {eur(monthExpense)}
+                </p>
+                <p className="text-sm text-tinta/55 mt-2">
+                  Haber <span className="figures font-semibold text-haber">{eur(monthIncome)}</span>
+                </p>
               </div>
-              <div className="bg-white rounded-xl p-3 shadow text-center">
-                <div className="text-xs">Gastos {MONTHS[month - 1]}</div>
-                <div className="font-bold text-red-700 text-lg">{eur(monthExpense)}</div>
+              <div
+                className={`stamp figures ml-auto w-32 h-32 sm:w-36 sm:h-36 -rotate-6 flex flex-col items-center justify-center text-center leading-tight ${
+                  monthIncome - monthExpense >= 0 ? 'text-haber' : 'text-rojo'
+                }`}
+                aria-label={`Neto del mes: ${eur(monthIncome - monthExpense)}`}
+              >
+                <span className="text-[11px] font-medium">neto</span>
+                <span className="font-slab font-bold text-xl sm:text-2xl px-2">{eur(monthIncome - monthExpense)}</span>
               </div>
-              <div className="bg-white rounded-xl p-3 shadow text-center">
-                <div className="text-xs">Neto</div>
-                <div className="font-bold text-lg">{eur(monthIncome - monthExpense)}</div>
-              </div>
-            </div>
-            {/* Barra por grupo */}
-            <div className="bg-white rounded-xl shadow p-4">
-              <h3 className="font-bold mb-2">Gasto por tipo en {MONTHS[month - 1]}</h3>
+            </section>
+
+            {/* Gasto por tipo */}
+            <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5" aria-label={`Gasto por tipo en ${MONTHS[month - 1]}`}>
+              <h3 className="font-slab font-semibold text-lg border-b-2 border-tinta/60 pb-2 mb-2">
+                Por tipo en {MONTHS[month - 1].toLowerCase()}
+              </h3>
               {(() => {
                 const agg = {}
                 monthMovs.filter((m) => m.kind === 'gasto').forEach((m) => {
@@ -589,135 +649,143 @@ export default function App() {
                 })
                 const max = Math.max(1, ...Object.values(agg))
                 const entries = Object.entries(agg).sort((a, b) => b[1] - a[1])
-                if (!entries.length) return <p className="text-sm text-slate-500">Sin gastos este mes.</p>
+                if (!entries.length) return <p className="text-sm text-tinta/55 py-2">Sin gastos este mes. Anota el primero con Nuevo asiento.</p>
                 return entries.map(([label, v]) => (
-                  <div key={label} className="flex items-center gap-2 text-sm py-1">
-                    <div className="w-40 truncate">{label} <span className="text-slate-400">· {groupOf(label)}</span></div>
-                    <div className="flex-1 bg-slate-100 rounded h-4 overflow-hidden">
-                      <div className="bg-red-500 h-4" style={{ width: `${(v / max) * 100}%` }} />
+                  <div key={label} className="flex items-center gap-3 text-sm py-1.5 border-b border-tinta/10 last:border-b-0">
+                    <div className="w-44 shrink-0">
+                      <p className="truncate font-medium">{label}</p>
+                      <p className="text-xs text-tinta/50">{groupOf(label)}</p>
                     </div>
-                    <div className="w-24 text-right font-semibold">{eur(v)}</div>
+                    <div className="flex-1 h-3 bg-papel border border-tinta/15 overflow-hidden">
+                      <div className="bg-rojo/80 h-full" style={{ width: `${(v / max) * 100}%` }} />
+                    </div>
+                    <div className="figures w-28 text-right font-slab font-semibold">{eur(v)}</div>
                   </div>
                 ))
               })()}
-            </div>
-            <div className="bg-white rounded-xl shadow divide-y">
-              {monthMovs.length === 0 && <p className="p-4 text-sm text-slate-500">No hay movimientos.</p>}
+            </section>
+            <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)]" aria-label={`Apuntes de ${MONTHS[month - 1]}`}>
+              {monthMovs.length === 0 && <p className="p-5 text-sm text-tinta/55">No hay apuntes.</p>}
               {monthMovs.map((m) => (
-                <div key={m.id} className="p-3 flex items-center gap-3 text-sm">
-                  <span className={`w-2 h-10 rounded ${m.kind === 'ingreso' ? 'bg-green-500' : 'bg-red-500'}`} />
-                  <div className="flex-1">
-                    <div className="font-semibold">{m.label} <span className="font-normal text-slate-400">· {m.group}</span></div>
-                    <div className="text-slate-500">{m.date}{m.note ? ` · ${m.note}` : ''}</div>
+                <div key={m.id} className="p-4 flex items-center gap-3 text-sm border-b border-tinta/10 last:border-b-0 hover:bg-boli/[0.03]">
+                  <span aria-hidden="true" className={`w-1 self-stretch ${m.kind === 'ingreso' ? 'bg-haber' : 'bg-rojo'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">{m.label}</p>
+                    <p className="text-xs text-tinta/50">{m.group}, {m.date}{m.note ? `, ${m.note}` : ''}</p>
                   </div>
-                  <div className={`font-bold ${m.kind === 'ingreso' ? 'text-green-700' : 'text-red-700'}`}>
-                    {m.kind === 'ingreso' ? '+' : '-'}{eur(m.amount)}
-                  </div>
-                  <button onClick={() => removeMovement(m.id)} className="text-slate-300 hover:text-red-600 px-2">✕</button>
+                  <p className={`figures font-slab font-semibold text-base ${m.kind === 'ingreso' ? 'text-haber' : 'text-rojo'}`}>
+                    {m.kind === 'ingreso' ? '+' : '−'}{eur(m.amount)}
+                  </p>
+                  <button onClick={() => removeMovement(m.id)} aria-label={`Borrar ${m.label}`} className="text-tinta/25 hover:text-rojo px-2 text-base">✕</button>
                 </div>
               ))}
-            </div>
+            </section>
           </div>
         )}
 
         {tab === 'historico' && (
-          <div className="bg-white rounded-xl shadow p-4">
-            <h3 className="font-bold mb-3">Histórico por años</h3>
-            <table className="w-full text-sm">
+          <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5" aria-label="Historial por años">
+            <h3 className="font-slab font-semibold text-lg border-b-2 border-tinta/60 pb-2 mb-1">Historial por años</h3>
+            <table className="figures w-full text-sm border-collapse">
               <thead>
-                <tr className="text-left text-slate-500">
-                  <th className="p-2">Año</th>
-                  <th className="p-2 text-right">Ingresos</th>
-                  <th className="p-2 text-right">Gastos</th>
-                  <th className="p-2 text-right">Neto</th>
+                <tr className="text-left text-tinta/55 border-b border-tinta/15">
+                  <th className="py-2 pr-2 font-medium">Año</th>
+                  <th className="p-2 text-right font-medium">Haber</th>
+                  <th className="p-2 text-right font-medium">Debe</th>
+                  <th className="p-2 text-right font-medium">Neto</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((h) => {
                   const max = Math.max(1, ...history.map((x) => x.expense))
                   return (
-                    <tr key={h.year} className="border-t">
-                      <td className="p-2">
-                        <button onClick={() => { setYear(h.year); setTab('anual') }} className="font-bold underline">{h.year}</button>
-                        <div className="h-2 bg-slate-100 rounded mt-1 max-w-[200px]">
-                          <div className="h-2 bg-slate-900 rounded" style={{ width: `${(h.expense / max) * 100}%` }} />
+                    <tr key={h.year} className="border-b border-tinta/10 last:border-b-0 hover:bg-boli/[0.03]">
+                      <td className="py-2.5 pr-2">
+                        <button onClick={() => { setYear(h.year); setTab('anual') }} className="font-slab font-semibold text-lg underline decoration-boli/40 underline-offset-4 hover:text-boli">{h.year}</button>
+                        <div className="h-1.5 bg-papel border border-tinta/15 mt-1.5 max-w-[220px]" aria-hidden="true">
+                          <div className="h-full bg-tinta/70" style={{ width: `${(h.expense / max) * 100}%` }} />
                         </div>
                       </td>
-                      <td className="p-2 text-right text-green-700">{eur(h.income)}</td>
-                      <td className="p-2 text-right text-red-700">{eur(h.expense)}</td>
-                      <td className="p-2 text-right font-bold">{eur(h.net)}</td>
+                      <td className="p-2.5 text-right text-haber">{eur(h.income)}</td>
+                      <td className="p-2.5 text-right text-rojo">{eur(h.expense)}</td>
+                      <td className="p-2.5 text-right font-slab font-semibold">{eur(h.net)}</td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-            <p className="text-xs text-slate-400 mt-2">Pulsa un año para ver su detalle anual.</p>
-          </div>
+            <p className="text-xs text-tinta/50 mt-3">Toca un año para abrir su página.</p>
+          </section>
         )}
       </main>
 
-      {/* Botón flotante añadir */}
+      {/* Sello para anotar */}
       <button
         onClick={() => setShowForm(!showForm)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-slate-900 text-white text-3xl shadow-lg"
+        aria-expanded={showForm}
+        className="stamp fixed bottom-6 right-6 z-20 bg-boli text-white font-semibold pl-4 pr-5 py-3 -rotate-2 hover:rotate-0 active:scale-95 transition shadow-[3px_3px_0_0_rgba(29,42,77,0.25)]"
       >
-        +
+        <span aria-hidden="true" className="font-slab font-bold text-xl leading-none mr-2">+</span>
+        Nuevo asiento
       </button>
       {showForm && (
-        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-96 z-20">
+        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-20 max-h-[70vh] overflow-auto">
           <MovementForm onSave={saveMovement} />
         </div>
       )}
 
       {/* Vista previa de importación del Excel */}
       {preview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-30">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-5 space-y-3 max-h-[85vh] overflow-auto">
-            <h2 className="font-bold text-lg">Importar {preview.fileName}</h2>
-            <p className="text-sm text-slate-500">
-              Se han detectado estos años. Revisa los totales antes de confirmar
-              (cada celda se guarda como un movimiento el día 15 de su mes).
-            </p>
-            <table className="w-full text-sm">
+        <div className="fixed inset-0 bg-tinta/50 flex items-center justify-center p-4 z-30">
+          <div className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.25)] w-full max-w-lg max-h-[85vh] overflow-auto">
+            <div className="border-b-[3px] border-double border-tinta/30 px-5 pt-4 pb-3">
+              <h2 className="font-slab font-semibold text-xl">Traer {preview.fileName}</h2>
+              <p className="text-sm text-tinta/60 mt-1">
+                Revisa los totales antes de copiarlo al cuaderno. Cada celda entra como un apunte el día 15 de su mes.
+              </p>
+            </div>
+            <div className="p-5 space-y-3">
+            <table className="figures w-full text-sm border-collapse">
               <thead>
-                <tr className="text-left text-slate-500">
-                  <th className="p-2">Hoja/Año</th>
-                  <th className="p-2 text-right">Valores</th>
-                  <th className="p-2 text-right">Ingresos</th>
-                  <th className="p-2 text-right">Gastos</th>
-                  <th className="p-2 text-right">Saldo ini.</th>
+                <tr className="text-left text-tinta/55 border-b border-tinta/15">
+                  <th className="py-2 pr-2 font-medium">Página</th>
+                  <th className="p-2 text-right font-medium">Apuntes</th>
+                  <th className="p-2 text-right font-medium">Haber</th>
+                  <th className="p-2 text-right font-medium">Debe</th>
+                  <th className="p-2 text-right font-medium">Saldo ini.</th>
                 </tr>
               </thead>
               <tbody>
                 {preview.sheets.map((s) => (
-                  <tr key={s.year} className="border-t">
-                    <td className="p-2 font-bold">{s.year}</td>
+                  <tr key={s.year} className="border-b border-tinta/10 last:border-b-0">
+                    <td className="py-2 pr-2 font-slab font-semibold">{s.year}</td>
                     <td className="p-2 text-right">{s.count}</td>
-                    <td className="p-2 text-right text-green-700">{eur(s.income)}</td>
-                    <td className="p-2 text-right text-red-700">{eur(s.expense)}</td>
+                    <td className="p-2 text-right text-haber">{eur(s.income)}</td>
+                    <td className="p-2 text-right text-rojo">{eur(s.expense)}</td>
                     <td className="p-2 text-right">{eur(s.balance)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {preview.warnings.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded p-2">
+              <div className="bg-amber-50 border border-amber-300 text-amber-900 text-xs p-2">
                 {preview.warnings.map((w, i) => (
-                  <p key={i}>⚠ {w}</p>
+                  <p key={i}>{w}</p>
                 ))}
               </div>
             )}
             <div className="flex gap-2">
-              <button onClick={() => setPreview(null)} className="flex-1 border rounded-lg py-2 font-semibold">
-                Cancelar
+              <button onClick={() => setPreview(null)} className="flex-1 border border-tinta/30 py-2 font-semibold hover:border-tinta">
+                Atrás
               </button>
               <button
                 onClick={confirmImport}
                 disabled={importing}
-                className="flex-1 bg-green-700 text-white rounded-lg py-2 font-semibold disabled:opacity-50"
+                className="flex-1 bg-tinta text-white py-2 font-semibold hover:bg-boli active:scale-[0.98] transition disabled:opacity-50"
               >
-                {importing ? 'Importando…' : `Confirmar (${preview.movements.length})`}
+                {importing ? 'Copiando…' : `Copiar ${preview.movements.length} apuntes`}
               </button>
+            </div>
             </div>
           </div>
         </div>

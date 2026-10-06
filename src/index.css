@@ -2,9 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cuaderno de cuentas: papel con cuadrícula tenue */
 body {
-  @apply bg-slate-100 text-slate-900;
+  @apply bg-papel text-tinta font-sans;
+  background-image:
+    linear-gradient(rgba(43, 75, 211, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 75, 211, 0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
-input, select, textarea {
-  @apply outline-none;
+
+input,
+select,
+textarea {
+  @apply outline-none bg-transparent;
+}
+
+/* Cifras siempre tabulares */
+.figures {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Margen rojo del cuaderno */
+.ledger-margin {
+  border-left: 2px solid rgba(179, 39, 30, 0.4);
+}
+@media (max-width: 640px) {
+  .ledger-margin {
+    border-left: none;
+  }
+}
+
+/* Sello de goma: doble filete, leve giro */
+.stamp {
+  border: 2px solid currentColor;
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Foco visible con boli */
+:focus-visible {
+  outline: 2px solid #2b4bd3;
+  outline-offset: 2px;
+}
+
+/* Sin flechas en los campos de importe */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
