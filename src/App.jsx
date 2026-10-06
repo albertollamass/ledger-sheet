@@ -702,7 +702,14 @@ export default function App() {
         {tab === 'anual' && (
           <>
             <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={`Meses de ${year}`}>
-              <table className="figures w-full text-sm min-w-[900px] border-separate border-spacing-0">
+              <table className="figures w-full text-sm min-w-[1768px] table-fixed border-separate border-spacing-0">
+                <colgroup>
+                  <col className="w-52" />
+                  {MONTHS.map((m) => (
+                    <col key={m} className="w-[7.5rem]" />
+                  ))}
+                  <col className="w-[7.5rem]" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th className="sticky left-0 top-0 z-20 bg-papel text-left p-2.5 font-medium text-tinta/60 border-b-2 border-r border-tinta/60"></th>
@@ -746,7 +753,14 @@ export default function App() {
               return (
                 <section key={group} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={group}>
                   <h3 className="font-slab font-semibold text-lg px-4 pt-4 pb-2 border-b-2 border-tinta/60">{group}</h3>
-                  <table className="figures w-full text-sm min-w-[900px] border-separate border-spacing-0">
+                  <table className="figures w-full text-sm min-w-[1768px] table-fixed border-separate border-spacing-0">
+                    <colgroup>
+                      <col className="w-52" />
+                      {MONTHS.map((m) => (
+                        <col key={m} className="w-[7.5rem]" />
+                      ))}
+                      <col className="w-[7.5rem]" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th className="sticky left-0 z-20 bg-white p-2 font-medium border-b border-r border-tinta/20"></th>
