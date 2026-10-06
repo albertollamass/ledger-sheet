@@ -89,6 +89,34 @@ function Login({ onDemo }) {
   )
 }
 
+function MonthPicker({ month, onMonth, onCurrent }) {
+  return (
+    <div className="flex gap-1.5 flex-wrap items-center" role="group" aria-label="Mes">
+      {MONTHS.map((m, i) => (
+        <button
+          key={m}
+          onClick={() => onMonth(i + 1)}
+          aria-pressed={month === i + 1}
+          className={`px-3 py-1.5 text-sm border ${
+            month === i + 1
+              ? 'bg-tinta text-white border-tinta font-semibold'
+              : 'bg-white border-tinta/25 hover:border-boli hover:text-boli'
+          }`}
+        >
+          {m.slice(0, 3)}
+        </button>
+      ))}
+      <button
+        onClick={onCurrent}
+        title="Volver al mes actual"
+        className="stamp ml-1 px-3 py-1 text-sm text-boli hover:bg-boli hover:text-white active:scale-95 transition"
+      >
+        Mes actual
+      </button>
+    </div>
+  )
+}
+
 function InstallButton() {
   const [deferred, setDeferred] = useState(null)
   const [help, setHelp] = useState(false)
@@ -477,6 +505,12 @@ export default function App() {
     setBalances({ ...balances, [String(year)]: Number(v) || 0 })
   }
 
+  const goCurrentMonth = () => {
+    const n = new Date()
+    setYear(n.getFullYear())
+    setMonth(n.getMonth() + 1)
+  }
+
   const onFileChosen = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -668,14 +702,14 @@ export default function App() {
         {tab === 'anual' && (
           <>
             <section className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={`Meses de ${year}`}>
-              <table className="figures w-full text-sm min-w-[900px] border-collapse">
-                <thead className="sticky top-0">
-                  <tr className="bg-papel border-b-2 border-tinta/60">
-                    <th className="text-left p-2.5 font-medium text-tinta/60"></th>
-                    {MONTHS.map((m) => (
-                      <th key={m} className="p-2.5 text-right font-medium text-tinta/60">{m.slice(0, 3)}</th>
+              <table className="figures w-full text-sm min-w-[900px] border-separate border-spacing-0">
+                <thead>
+                  <tr>
+                    <th className="sticky left-0 top-0 z-20 bg-papel text-left p-2.5 font-medium text-tinta/60 border-b-2 border-r border-tinta/60"></th>
+                    {MONTHS.map((m, i) => (
+                      <th key={m} className={`sticky top-0 z-10 p-2.5 text-right border-b-2 border-tinta/60 ${i === month - 1 ? 'bg-[#dfe6fb] text-boli font-semibold' : 'bg-papel font-medium text-tinta/60'}`}>{m.slice(0, 3)}</th>
                     ))}
-                    <th className="p-2.5 text-right font-medium text-tinta/60">Total</th>
+                    <th className="sticky top-0 z-10 bg-papel p-2.5 text-right font-medium text-tinta/60 border-b-2 border-tinta/60">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -685,12 +719,12 @@ export default function App() {
                     ['Neto', incomeByMonth.map((v, i) => v - expenseByMonth[i]), 'font-semibold'],
                     ['Acumulado', acumulado, 'italic text-tinta/50']
                   ].map(([label, arr, cls]) => (
-                    <tr key={label} className="border-b border-tinta/10 hover:bg-boli/[0.04]">
-                      <td className="p-2.5 font-slab font-semibold">{label}</td>
+                    <tr key={label}>
+                      <td className="sticky left-0 z-[1] bg-white p-2.5 font-slab font-semibold border-b border-r border-tinta/10">{label}</td>
                       {arr.map((v, i) => (
-                        <td key={i} className={`p-2.5 text-right ${cls}`}>{eur(v)}</td>
+                        <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} ${cls}`}>{eur(v)}</td>
                       ))}
-                      <td className={`p-2.5 text-right ${cls}`}>{label === 'Acumulado' ? '' : eur(sum(arr))}</td>
+                      <td className={`p-2.5 text-right bg-white border-b border-tinta/10 ${cls}`}>{label === 'Acumulado' ? '' : eur(sum(arr))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -712,33 +746,42 @@ export default function App() {
               return (
                 <section key={group} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={group}>
                   <h3 className="font-slab font-semibold text-lg px-4 pt-4 pb-2 border-b-2 border-tinta/60">{group}</h3>
-                  <table className="figures w-full text-sm min-w-[900px] border-collapse">
+                  <table className="figures w-full text-sm min-w-[900px] border-separate border-spacing-0">
+                    <thead>
+                      <tr>
+                        <th className="sticky left-0 z-20 bg-white p-2 font-medium border-b border-r border-tinta/20"></th>
+                        {MONTHS.map((m, i) => (
+                          <th key={m} className={`p-2 text-right font-medium border-b border-tinta/20 ${i === month - 1 ? 'bg-[#dfe6fb] text-boli font-semibold' : 'bg-white text-tinta/50'}`}>{m.slice(0, 3)}</th>
+                        ))}
+                        <th className="p-2 text-right font-medium text-tinta/50 bg-white border-b border-tinta/20">Total</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {rows.map((r) => (
-                        <tr key={r.label} className="border-b border-tinta/10 hover:bg-boli/[0.04]">
-                          <td className="p-2.5 w-52">{r.label}</td>
+                        <tr key={r.label}>
+                          <td className="sticky left-0 z-[1] bg-white p-2.5 w-52 border-b border-r border-tinta/10">{r.label}</td>
                           {r.months.map((v, i) => (
-                            <td key={i} className="p-2.5 text-right text-tinta/60">{v ? eur(v) : ''}</td>
+                            <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} text-tinta/60`}>{v ? eur(v) : ''}</td>
                           ))}
-                          <td className="p-2.5 text-right font-semibold">{eur(sum(r.months))}</td>
+                          <td className="p-2.5 text-right font-semibold bg-white border-b border-tinta/10">{eur(sum(r.months))}</td>
                         </tr>
                       ))}
-                      <tr className="border-b-2 border-tinta/60 font-semibold bg-papel/60">
-                        <td className="p-2.5 font-slab">Total {group}</td>
+                      <tr className="font-semibold">
+                        <td className="sticky left-0 z-[1] bg-papel p-2.5 font-slab border-b-2 border-r border-tinta/60">Total {group}</td>
                         {total.map((v, i) => (
-                          <td key={i} className="p-2.5 text-right">{eur(v)}</td>
+                          <td key={i} className={`p-2.5 text-right border-b-2 border-tinta/60 ${i === month - 1 ? 'bg-[#dfe6fb]' : 'bg-papel'}`}>{eur(v)}</td>
                         ))}
-                        <td className="p-2.5 text-right">{eur(sum(total))}</td>
+                        <td className="p-2.5 text-right bg-papel border-b-2 border-tinta/60">{eur(sum(total))}</td>
                       </tr>
                       {!isIncome && (
                         <tr className="text-xs text-tinta/50">
-                          <td className="p-2.5">Tanto del ingreso</td>
+                          <td className="sticky left-0 z-[1] bg-white p-2.5 border-r border-tinta/10">Tanto del ingreso</td>
                           {total.map((v, i) => (
-                            <td key={i} className="p-2.5 text-right">
+                            <td key={i} className={`p-2.5 text-right ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'}`}>
                               {incomeByMonth[i] ? `${Math.round((v / incomeByMonth[i]) * 100)} %` : '—'}
                             </td>
                           ))}
-                          <td className="p-2.5 text-right">{totalIncome ? `${Math.round((sum(total) / totalIncome) * 100)} %` : '—'}</td>
+                          <td className="p-2.5 text-right bg-white">{totalIncome ? `${Math.round((sum(total) / totalIncome) * 100)} %` : '—'}</td>
                         </tr>
                       )}
                     </tbody>
@@ -751,33 +794,7 @@ export default function App() {
 
         {tab === 'mes' && (
           <div className="space-y-6">
-            <div className="flex gap-1.5 flex-wrap items-center" role="group" aria-label="Mes">
-              {MONTHS.map((m, i) => (
-                <button
-                  key={m}
-                  onClick={() => setMonth(i + 1)}
-                  aria-pressed={month === i + 1}
-                  className={`px-3 py-1.5 text-sm border ${
-                    month === i + 1
-                      ? 'bg-tinta text-white border-tinta font-semibold'
-                      : 'bg-white border-tinta/25 hover:border-boli hover:text-boli'
-                  }`}
-                >
-                  {m.slice(0, 3)}
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  const n = new Date()
-                  setYear(n.getFullYear())
-                  setMonth(n.getMonth() + 1)
-                }}
-                title="Volver al mes actual"
-                className="stamp ml-1 px-3 py-1 text-sm text-boli hover:bg-boli hover:text-white active:scale-95 transition"
-              >
-                Mes actual
-              </button>
-            </div>
+            <MonthPicker month={month} onMonth={setMonth} onCurrent={goCurrentMonth} />
 
             {/* Lo característico: el gasto del mes, grande, en rojo contable */}
             <section aria-label={`${MONTHS[month - 1]} de ${year}`} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] p-5 sm:p-8 flex flex-wrap items-end gap-x-10 gap-y-6">
@@ -882,35 +899,58 @@ export default function App() {
                       {eur(catData.total)}
                     </p>
                   </div>
-                  <div
-                    className="flex text-sm border border-tinta/25 bg-white self-start"
-                    role="group"
-                    aria-label="Periodo"
-                  >
-                    {[
-                      ['mes', MONTHS[month - 1].slice(0, 3)],
-                      ['año', String(year)]
-                    ].map(([id, label]) => (
-                      <button
-                        key={id}
-                        onClick={() => setCatScope(id)}
-                        aria-pressed={catScope === id}
-                        className={`px-4 py-1.5 border-r last:border-r-0 border-tinta/15 ${
-                          catScope === id ? 'bg-tinta text-white font-semibold' : 'hover:bg-papel'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap items-center gap-2 self-start">
+                    <div
+                      className="flex text-sm border border-tinta/25 bg-white"
+                      role="group"
+                      aria-label="Periodo"
+                    >
+                      {[
+                        ['mes', MONTHS[month - 1].slice(0, 3)],
+                        ['año', String(year)]
+                      ].map(([id, label]) => (
+                        <button
+                          key={id}
+                          onClick={() => setCatScope(id)}
+                          aria-pressed={catScope === id}
+                          className={`px-4 py-1.5 border-r last:border-r-0 border-tinta/15 ${
+                            catScope === id ? 'bg-tinta text-white font-semibold' : 'hover:bg-papel'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {catScope === 'mes' && (
+                      <>
+                        <select
+                          value={month}
+                          onChange={(e) => setMonth(Number(e.target.value))}
+                          aria-label="Mes"
+                          className="text-sm border border-tinta/25 bg-white px-2 py-1.5"
+                        >
+                          {MONTHS.map((m, i) => (
+                            <option key={m} value={i + 1}>{m}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={goCurrentMonth}
+                          title="Volver al mes actual"
+                          className="stamp px-3 py-1 text-sm text-boli hover:bg-boli hover:text-white active:scale-95 transition"
+                        >
+                          Mes actual
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <p className="text-sm text-tinta/55 mt-2">
                   {catData.count} {catData.count === 1 ? 'movimiento' : 'movimientos'}
                   {catScope === 'año' && (
-                    <> · media de {eur(catData.avg)} al mes</>
+                    <>, media de {eur(catData.avg)} al mes</>
                   )}
                   {catData.scopeTotal > 0 && (
-                    <> · supone el {Math.round((catData.total / catData.scopeTotal) * 100)} % de lo {catData.kind === 'ingreso' ? 'ingresado' : 'gastado'} en el periodo</>
+                    <>, supone el {Math.round((catData.total / catData.scopeTotal) * 100)} % de lo {catData.kind === 'ingreso' ? 'ingresado' : 'gastado'} en el periodo</>
                   )}
                 </p>
 
