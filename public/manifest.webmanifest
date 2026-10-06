@@ -1,0 +1,23 @@
+{
+  "name": "Ingresos y gastos · cuaderno de cuentas",
+  "short_name": "Cuentas",
+  "description": "Apunta gastos e ingresos, mira el mes y guarda el historial por años.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F3F5F9",
+  "theme_color": "#1D2A4D",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
+  "shortcuts": [
+    { "name": "Añadir movimiento", "url": "/?nuevo=1" },
+    { "name": "Ver el mes", "url": "/" }
+  ]
+}

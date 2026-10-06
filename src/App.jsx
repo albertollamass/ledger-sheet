@@ -15,7 +15,7 @@ import {
 import { auth, db, googleProvider, isFirebaseConfigured } from './firebase'
 import { keyOf, parseExcelFile } from './excelImport'
 import { EXPENSE_GROUPS, INCOME_GROUPS, MONTHS } from './categories'
-import { buildYearMatrix, eur, sum, toISODate } from './utils'
+import { buildYearMatrix, eur, parseSharedAmount, sum, toISODate } from './utils'
 
 const ALL_GROUPS = [...INCOME_GROUPS, ...EXPENSE_GROUPS]
 const groupOf = (label) => ALL_GROUPS.find((g) => g.items.includes(label))?.group ?? 'Otros'
@@ -240,8 +240,31 @@ export default function App() {
   const [showForm, setShowForm] = useState(false)
   const [importing, setImporting] = useState(false)
   const [preview, setPreview] = useState(null)
+  const [prefill, setPrefill] = useState(null)
   const fileRef = useRef(null)
   const local = useLocalDemo()
+
+  // Captura rápida: ?amount=12,50&kind=gasto&note=..&date=...., ?nuevo=1
+  // o texto compartido desde otra app (?text=..&title=..&url=..).
+  // Solo rellena el formulario; nada se guarda sin pulsar Guardar.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const shared = [q.get('title'), q.get('text'), q.get('url')].filter(Boolean).join('\n')
+    const wantsNew = q.has('nuevo') || q.has('amount') || shared !== ''
+    if (!wantsNew) return
+    const fromParam = parseSharedAmount(q.get('amount') ?? '')
+    const amount = fromParam || parseSharedAmount(shared)
+    const note = (q.get('note') ?? q.get('text') ?? q.get('title') ?? '').slice(0, 120)
+    const dateParam = q.get('date') ?? ''
+    setPrefill({
+      kind: q.get('kind') === 'ingreso' ? 'ingreso' : 'gasto',
+      amount: amount || '',
+      date: /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : toISODate(),
+      note
+    })
+    setShowForm(true)
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [])
 
   useEffect(() => {
     if (!isFirebaseConfigured) return
@@ -350,10 +373,12 @@ export default function App() {
     if (!isFirebaseConfigured || demo) {
       local.setMovements([{ id: String(Date.now()), ...data }, ...local.movements])
       setShowForm(false)
+      setPrefill(null)
       return
     }
     await addDoc(collection(db, `users/${user.uid}/movements`), { ...data, createdAt: new Date().toISOString() })
     setShowForm(false)
+    setPrefill(null)
   }
 
   const removeMovement = async (id) => {
@@ -647,7 +672,7 @@ export default function App() {
 
         {tab === 'mes' && (
           <div className="space-y-6">
-            <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Mes">
+            <div className="flex gap-1.5 flex-wrap items-center" role="group" aria-label="Mes">
               {MONTHS.map((m, i) => (
                 <button
                   key={m}
@@ -662,6 +687,17 @@ export default function App() {
                   {m.slice(0, 3)}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  const n = new Date()
+                  setYear(n.getFullYear())
+                  setMonth(n.getMonth() + 1)
+                }}
+                title="Volver al mes actual"
+                className="stamp ml-1 px-3 py-1 text-sm text-boli hover:bg-boli hover:text-white active:scale-95 transition"
+              >
+                Mes actual
+              </button>
             </div>
 
             {/* Lo característico: el gasto del mes, grande, en rojo contable */}
@@ -872,7 +908,10 @@ export default function App() {
 
       {/* Sello para anotar */}
       <button
-        onClick={() => setShowForm(!showForm)}
+        onClick={() => {
+          if (showForm) setPrefill(null)
+          setShowForm(!showForm)
+        }}
         aria-expanded={showForm}
         className="stamp fixed bottom-6 right-6 z-20 bg-boli text-white font-semibold pl-4 pr-5 py-3 -rotate-2 hover:rotate-0 active:scale-95 transition shadow-[3px_3px_0_0_rgba(29,42,77,0.25)]"
       >
@@ -881,7 +920,7 @@ export default function App() {
       </button>
       {showForm && (
         <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-20 max-h-[70vh] overflow-auto">
-          <MovementForm onSave={saveMovement} />
+          <MovementForm onSave={saveMovement} initial={prefill ?? undefined} />
         </div>
       )}
 
