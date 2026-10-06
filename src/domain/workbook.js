@@ -1,7 +1,8 @@
-import { read, utils } from 'xlsx'
+// Dominio: lectura de la plantilla Excel (matriz de celdas ya extraída).
+// Puro, sin dependencias: no sabe de xlsx, Firebase ni React.
 
 // Nombres de sección que la plantilla reconoce como cabecera de grupo.
-// (Solo se usan para detectar grupos al importar; el formulario usa src/categories.js)
+// (Solo se usan para detectar grupos al importar; el formulario usa categories.js)
 const KNOWN_GROUP_NAMES = [
   'Ingresos',
   'Gastos Fijos',
@@ -50,7 +51,7 @@ export function parseAmountCell(v) {
   return neg ? -r : r
 }
 
-function detectYear(sheetName, matrix) {
+export function detectYear(sheetName, matrix) {
   const m = String(sheetName).match(/(19|20)\d{2}/)
   if (m) return Number(m[0])
   // Buscar un año en las primeras filas (título de la hoja)
@@ -63,7 +64,10 @@ function detectYear(sheetName, matrix) {
   return null
 }
 
-function parseSheet(matrix) {
+// Parsea una hoja (matriz de filas) con el formato de la plantilla.
+// Devuelve { balance, movements: [{ kind, group, label, amount, month }] }
+// o { error } si no tiene el formato esperado.
+export function parseLedgerSheet(matrix) {
   // Fila de cabecera: la que contiene "Enero"
   let hdrIdx = -1
   for (let i = 0; i < matrix.length; i++) {
@@ -137,51 +141,3 @@ function parseSheet(matrix) {
   }
   return { balance, movements }
 }
-
-/**
- * Parsea un .xlsx/.xls con hojas por año (como tu plantilla).
- * Devuelve { balances, movements, sheets, warnings }.
- * Cada celda con valor se convierte en un movimiento el día 15 de su mes.
- */
-export function parseExcelFile(arrayBuffer) {
-  const wb = read(arrayBuffer, { type: 'array' })
-  const balances = {}
-  const movements = []
-  const sheets = []
-  const warnings = []
-
-  for (const name of wb.SheetNames) {
-    const ws = wb.Sheets[name]
-    const matrix = utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' })
-    if (!matrix.length) continue
-    const year = detectYear(name, matrix)
-    if (!year) {
-      warnings.push(`Hoja "${name}": no se detectó el año, se omite (renómbrala como 2024, 2025…)`)
-      continue
-    }
-    const parsed = parseSheet(matrix)
-    if (parsed.error) {
-      warnings.push(`Hoja "${name}": ${parsed.error}`)
-      continue
-    }
-    balances[String(year)] = parsed.balance
-    let n = 0
-    for (const m of parsed.movements) {
-      movements.push({
-        ...m,
-        year,
-        date: `${year}-${String(m.month).padStart(2, '0')}-15`,
-        note: 'Importado del Excel',
-        imported: true
-      })
-      n++
-    }
-    const inc = parsed.movements.filter((m) => m.kind === 'ingreso').reduce((a, m) => a + m.amount, 0)
-    const exp = parsed.movements.filter((m) => m.kind === 'gasto').reduce((a, m) => a + m.amount, 0)
-    sheets.push({ name, year, count: n, income: inc, expense: exp, balance: parsed.balance })
-  }
-
-  return { balances, movements, sheets, warnings }
-}
-
-export const keyOf = (m) => `${m.year}|${m.month}|${m.label}|${m.amount}`

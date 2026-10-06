@@ -48,7 +48,7 @@ Reinicia `npm run dev`.
 - `users/{uid}/movements/{id}`: `{ kind: 'ingreso'|'gasto', group, label (tipo), amount, date 'YYYY-MM-DD', year, month, note }`
 - `users/{uid}/yearSettings/{año}`: `{ initialBalance }` → es el "Saldo Inicial" del Excel.
 
-Las categorías vienen de tu hoja 2026 y están en `src/categories.js`. Edítalas ahí si quieres añadir tipos.
+Las categorías vienen de tu hoja 2026 y están en `src/domain/categories.js`. Edítalas ahí si quieres añadir tipos.
 
 ## Despliegue gratis
 Opción fácil: Firebase Hosting

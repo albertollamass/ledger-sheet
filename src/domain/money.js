@@ -1,3 +1,5 @@
+// Dominio: dinero. Puro, sin dependencias.
+
 export const eur = (n) =>
   new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(Number(n) || 0)
 
@@ -7,33 +9,6 @@ export const parseAmount = (v) => {
   const s = String(v).replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '')
   return Number(s) || 0
 }
-
-export const toISODate = (d = new Date()) => d.toISOString().slice(0, 10)
-
-// Agrega movimientos a matriz [grupo][tipo][mes] como en el Excel
-export function buildYearMatrix(movements, year) {
-  // returns { incomeByMonth[12], expenseByMonth[12], byGroup: {group: {label: [12]}} }
-  const incomeByMonth = Array(12).fill(0)
-  const expenseByMonth = Array(12).fill(0)
-  const byGroup = {}
-
-  const ensure = (group, label) => {
-    if (!byGroup[group]) byGroup[group] = {}
-    if (!byGroup[group][label]) byGroup[group][label] = Array(12).fill(0)
-  }
-
-  for (const m of movements) {
-    if (m.year !== year) continue
-    const idx = (m.month || 1) - 1
-    ensure(m.group, m.label)
-    byGroup[m.group][m.label][idx] += m.amount
-    if (m.kind === 'ingreso') incomeByMonth[idx] += m.amount
-    else expenseByMonth[idx] += m.amount
-  }
-  return { incomeByMonth, expenseByMonth, byGroup }
-}
-
-export const sum = (arr) => arr.reduce((a, b) => a + (Number(b) || 0), 0)
 
 // Busca el primer importe en un texto compartido (notificación del banco,
 // texto de la cartera, portapapeles). Entiende "12,50 €", "1.234,56", "12.50".
@@ -46,7 +21,7 @@ export function parseSharedAmount(text) {
   // Los números de dos partes sin año se dejan: pueden ser decimales ("8.99").
   s = s.replace(/\d{4}-\d{2}-\d{2}/g, ' ').replace(/\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b/g, ' ')
   const toNumber = (raw) => {
-    let t = String(raw).replace(/[\s ]/g, '')
+    let t = String(raw).replace(/[\s\u00a0]/g, '')
     if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
     const n = Number(t)
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0

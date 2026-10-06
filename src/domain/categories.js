@@ -1,4 +1,4 @@
-// Categorías de tu hoja 2026 (la personalizada).
+// Dominio: vocabulario del cuaderno (grupos y tipos de la hoja 2026).
 // El desglose anual además muestra automáticamente cualquier grupo/tipo
 // que venga de un Excel importado, aunque no esté en esta lista.
 
@@ -80,3 +80,8 @@ export const MONTHS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ]
+
+const ALL_GROUPS = [...INCOME_GROUPS, ...EXPENSE_GROUPS]
+
+export const groupOfLabel = (label) =>
+  ALL_GROUPS.find((g) => g.items.includes(label))?.group ?? 'Otros'
