@@ -117,9 +117,8 @@ function MonthPicker({ month, onMonth, onCurrent }) {
   )
 }
 
-function InstallButton() {
+function InstallButton({ help, setHelp }) {
   const [deferred, setDeferred] = useState(null)
-  const [help, setHelp] = useState(false)
   const [installed, setInstalled] = useState(
     () =>
       window.matchMedia?.('(display-mode: standalone)').matches ||
@@ -350,6 +349,7 @@ export default function App() {
   const [importing, setImporting] = useState(false)
   const [preview, setPreview] = useState(null)
   const [prefill, setPrefill] = useState(null)
+  const [installHelp, setInstallHelp] = useState(false)
   const fileRef = useRef(null)
   const local = useLocalDemo()
 
@@ -616,7 +616,7 @@ export default function App() {
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm w-full sm:w-auto justify-start border-t border-tinta/15 pt-2 sm:border-t-0 sm:pt-0">
             <span className="text-tinta/55 hidden md:inline">{demo ? 'modo demo' : user?.email}</span>
-            <InstallButton />
+            <InstallButton help={installHelp} setHelp={setInstallHelp} />
             <button
               onClick={() => fileRef.current?.click()}
               disabled={importing}
@@ -1042,7 +1042,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Sello para anotar */}
+      {/* Sello para anotar (se oculta con diálogos abiertos) */}
+      {!preview && !installHelp && (
       <button
         onClick={() => {
           if (showForm) setPrefill(null)
@@ -1054,6 +1055,7 @@ export default function App() {
         <span aria-hidden="true" className="font-slab font-bold text-xl leading-none mr-2">+</span>
         Añadir movimiento
       </button>
+      )}
       {showForm && (
         <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-40 max-h-[70vh] overflow-auto">
           <MovementForm onSave={saveMovement} initial={prefill ?? undefined} />
