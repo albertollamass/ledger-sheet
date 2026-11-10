@@ -1,7 +1,8 @@
 import { EXPENSE_GROUPS, INCOME_GROUPS, MONTHS } from '../../domain/categories.js'
+import { displayGroup, displayLabel } from '../../domain/catalog.js'
 import { sum } from '../../domain/ledger.js'
 
-export function AnnualView({ incomeByMonth, expenseByMonth, acumulado, byGroup, totalIncome, month, fmt }) {
+export function AnnualView({ incomeByMonth, expenseByMonth, acumulado, byGroup, totalIncome, month, fmt, preferences }) {
   const sections = (() => {
     const fixed = [...INCOME_GROUPS, ...EXPENSE_GROUPS]
     const extras = Object.keys(byGroup)
@@ -56,7 +57,7 @@ export function AnnualView({ incomeByMonth, expenseByMonth, acumulado, byGroup, 
         const isIncome = INCOME_GROUPS.some((g) => g.group === group)
         return (
           <section key={group} className="bg-white shadow-[4px_4px_0_0_rgba(29,42,77,0.12)] overflow-x-auto" aria-label={group}>
-            <h3 className="font-slab font-semibold text-lg px-4 pt-4 pb-2 border-b-2 border-tinta/60">{group}</h3>
+            <h3 className="font-slab font-semibold text-lg px-4 pt-4 pb-2 border-b-2 border-tinta/60">{displayGroup(preferences, group)}</h3>
             <table className="figures w-full text-sm min-w-[1768px] table-fixed border-separate border-spacing-0">
               <colgroup>
                 <col className="w-52" />
@@ -77,7 +78,7 @@ export function AnnualView({ incomeByMonth, expenseByMonth, acumulado, byGroup, 
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.label}>
-                    <td className="sticky left-0 z-[1] bg-white p-2.5 w-52 border-b border-r border-tinta/10">{r.label}</td>
+                    <td className="sticky left-0 z-[1] bg-white p-2.5 w-52 border-b border-r border-tinta/10">{displayLabel(preferences, r.label)}</td>
                     {r.months.map((v, i) => (
                       <td key={i} className={`p-2.5 text-right border-b border-tinta/10 ${i === month - 1 ? 'bg-[#eef2fd]' : 'bg-white'} text-tinta/60`}>{v ? fmt(v) : ''}</td>
                     ))}
@@ -85,7 +86,7 @@ export function AnnualView({ incomeByMonth, expenseByMonth, acumulado, byGroup, 
                   </tr>
                 ))}
                 <tr className="font-semibold">
-                  <td className="sticky left-0 z-[1] bg-papel p-2.5 font-slab border-b-2 border-r border-tinta/60">Total {group}</td>
+                  <td className="sticky left-0 z-[1] bg-papel p-2.5 font-slab border-b-2 border-r border-tinta/60">Total {displayGroup(preferences, group)}</td>
                   {total.map((v, i) => (
                     <td key={i} className={`p-2.5 text-right border-b-2 border-tinta/60 ${i === month - 1 ? 'bg-[#dfe6fb]' : 'bg-papel'}`}>{fmt(v)}</td>
                   ))}

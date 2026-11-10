@@ -6,8 +6,12 @@ import { buildYearMatrix, sum } from '../src/domain/ledger.js'
 import { keyOf, movementFromForm } from '../src/domain/movement.js'
 import { detectYear, parseAmountCell, parseLedgerSheet } from '../src/domain/workbook.js'
 import { groupOfLabel } from '../src/domain/categories.js'
+import { dueOccurrences, movementFromRule, nextOccurrence, occurrenceDate, ruleFromForm } from '../src/domain/recurring.js'
+import { displayGroup, displayLabel, normalizePreferences, personalizeGroups } from '../src/domain/catalog.js'
+import { APP_VERSION, currentRelease } from '../src/domain/releases.js'
 import { saveBalance } from '../src/application/balances.js'
 import { removeMovement, saveMovement } from '../src/application/movements.js'
+import { runRecurring } from '../src/application/recurring.js'
 import { importPreview, previewWorkbook } from '../src/application/workbookImport.js'
 
 // --- money ---
@@ -41,6 +45,46 @@ assert.equal(sum(m.expenseByMonth), 40)
 assert.equal(m.byGroup.Comida.Delivery[0], 30)
 assert.equal(m.byGroup.Comida.Delivery[1], 10)
 
+// --- recurring (reglas mensuales) ---
+assert.equal(occurrenceDate(2026, 2, 31), '2026-02-28')
+assert.equal(occurrenceDate(2024, 2, 31), '2024-02-29')
+const rule = ruleFromForm({
+  kind: 'gasto', group: 'Comida', label: 'Comida-Leroy',
+  amount: '120,50', day: '31', startDate: '2026-01-01', note: ''
+})
+assert.equal(rule.amount, 120.5)
+assert.equal(rule.day, 31)
+assert.deepEqual(dueOccurrences(rule, '2026-03-31'), ['2026-01-31', '2026-02-28', '2026-03-31'])
+assert.deepEqual(dueOccurrences({ ...rule, lastRun: '2026-02-28' }, '2026-03-31'), ['2026-03-31'])
+assert.deepEqual(dueOccurrences(rule, '2026-03-30'), ['2026-01-31', '2026-02-28'])
+assert.deepEqual(dueOccurrences({ ...rule, active: false }, '2026-03-31'), [])
+assert.equal(nextOccurrence({ ...rule, lastRun: '2026-03-31' }, '2026-03-31'), '2026-04-30')
+assert.equal(nextOccurrence(rule, '2026-03-31'), '2026-03-31')
+assert.equal(nextOccurrence({ ...rule, active: false }, '2026-03-31'), null)
+assert.deepEqual(movementFromRule({ ...rule, id: 'r1' }, '2026-03-31'), {
+  kind: 'gasto', group: 'Comida', label: 'Comida-Leroy', amount: 120.5,
+  date: '2026-03-31', year: 2026, month: 3, note: '', recurringId: 'r1'
+})
+
+// --- catálogo personalizado ---
+const prefs = normalizePreferences({
+  labels: { 'Comida-Leroy': '  Comida Leroy ', Igual: 'Igual', Vacio: '   ' },
+  groups: { Comida: 'Alimentación' }
+})
+assert.deepEqual(prefs.labels, { 'Comida-Leroy': 'Comida Leroy' })
+assert.deepEqual(prefs.groups, { Comida: 'Alimentación' })
+assert.equal(displayLabel(prefs, 'Comida-Leroy'), 'Comida Leroy')
+assert.equal(displayLabel(prefs, 'Delivery'), 'Delivery')
+assert.equal(displayGroup(prefs, 'Comida'), 'Alimentación')
+const personalized = personalizeGroups([{ group: 'Comida', items: ['Delivery', 'Comida-Leroy'] }], prefs)
+assert.equal(personalized[0].groupLabel, 'Alimentación')
+assert.deepEqual(personalized[0].items[1], { value: 'Comida-Leroy', label: 'Comida Leroy' })
+
+// --- novedades (una vez por versión y usuario) ---
+assert.equal(currentRelease().version, APP_VERSION)
+assert.equal(normalizePreferences({ ...prefs, lastSeenVersion: APP_VERSION }).lastSeenVersion, APP_VERSION)
+assert.equal(normalizePreferences({ labels: {} }).lastSeenVersion, undefined)
+
 // --- workbook (matriz con el formato de la plantilla) ---
 const sheet = [
   ['Planilla de Ingresos y Gastos Mensuales'],
@@ -64,10 +108,13 @@ assert.equal(parsed.movements.filter((x) => x.kind === 'gasto').reduce((a, x) =>
 assert.ok(!parsed.movements.some((x) => x.label.startsWith('Total ')))
 
 // --- application contra store falso (valida el contrato del puerto) ---
-function fakeStore(seed = { movements: [], balances: {} }) {
-  let movements = [...seed.movements]
-  let balances = { ...seed.balances }
+function fakeStore(seed = {}) {
+  let movements = [...(seed.movements || [])]
+  let balances = { ...(seed.balances || {}) }
+  let rules = [...(seed.rules || [])]
+  let preferences = { ...(seed.preferences || {}) }
   const listeners = new Set()
+  const ruleListeners = new Set()
   return {
     calls: [],
     subscribeMovements(cb) { listeners.add(cb); cb([...movements]); return () => listeners.delete(cb) },
@@ -86,7 +133,26 @@ function fakeStore(seed = { movements: [], balances: {} }) {
     },
     async removeMovement(id) { movements = movements.filter((x) => x.id !== id) },
     async loadBalances() { return { ...balances } },
-    async saveBalance(year, value) { balances = { ...balances, [String(year)]: Number(value) || 0 } }
+    async saveBalance(year, value) { balances = { ...balances, [String(year)]: Number(value) || 0 } },
+    subscribeRules(cb) { ruleListeners.add(cb); cb([...rules]); return () => ruleListeners.delete(cb) },
+    async listRules() { return [...rules] },
+    async addRule(data) {
+      const r = { id: `r-${rules.length}`, ...data }
+      rules = [r, ...rules]
+      ruleListeners.forEach((cb) => cb([...rules]))
+      return r
+    },
+    async updateRule(id, patch) {
+      rules = rules.map((r) => (r.id === id ? { ...r, ...patch } : r))
+      ruleListeners.forEach((cb) => cb([...rules]))
+      return rules.find((r) => r.id === id)
+    },
+    async removeRule(id) {
+      rules = rules.filter((r) => r.id !== id)
+      ruleListeners.forEach((cb) => cb([...rules]))
+    },
+    async loadPreferences() { return { ...preferences } },
+    async savePreferences(prefs) { preferences = { ...prefs }; return preferences }
   }
 }
 
@@ -102,6 +168,26 @@ assert.equal((await store.listMovements()).length, 0)
 await saveBalance(store, 2026, '40429')
 assert.deepEqual(await store.loadBalances(), { 2026: 40429 })
 unsub()
+
+// Movimientos automáticos contra store falso: crea y no duplica.
+const baseRule = {
+  id: 'r1',
+  ...ruleFromForm({
+    kind: 'gasto', group: 'Comida', label: 'Comida-Leroy',
+    amount: '50', day: '5', startDate: '2026-01-01'
+  })
+}
+const rStore = fakeStore({ rules: [baseRule] })
+assert.deepEqual(await runRecurring(rStore, await rStore.listRules(), '2026-03-10'), { created: 3, rules: 1 })
+assert.deepEqual(
+  (await rStore.listMovements()).map((x) => x.date).sort(),
+  ['2026-01-05', '2026-02-05', '2026-03-05']
+)
+assert.equal((await rStore.listRules())[0].lastRun, '2026-03-05')
+assert.deepEqual(await runRecurring(rStore, await rStore.listRules(), '2026-03-10'), { created: 0, rules: 0 })
+assert.equal((await rStore.listMovements()).length, 3)
+await rStore.savePreferences(prefs)
+assert.deepEqual(await rStore.loadPreferences(), prefs)
 
 // previewWorkbook con lector falso + importPreview sin duplicar
 const fakeReader = () => [{ name: '2026', matrix: sheet }]

@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isFirebaseConfigured } from '../firebase.js'
 import { buildYearMatrix, sum } from '../domain/ledger.js'
 import { eur, parseSharedAmount } from '../domain/money.js'
-import { toISODate } from '../domain/dates.js'
+import { localISODate, toISODate } from '../domain/dates.js'
+import { APP_VERSION, currentRelease } from '../domain/releases.js'
 import { saveMovement, removeMovement } from '../application/movements.js'
 import { saveBalance } from '../application/balances.js'
+import { removeRule, runRecurring, saveRule, updateRule } from '../application/recurring.js'
+import { savePreferences } from '../application/settings.js'
 import { importPreview, previewWorkbook } from '../application/workbookImport.js'
 import { readWorkbookSheets } from '../infrastructure/excelReader.js'
 import { signOutUser, watchSession } from '../infrastructure/auth.js'
@@ -14,6 +17,9 @@ import { Login } from './components/Login.jsx'
 import { MovementForm } from './components/MovementForm.jsx'
 import { InstallButton } from './components/InstallButton.jsx'
 import { ImportPreviewDialog } from './components/ImportPreviewDialog.jsx'
+import { LabelsEditor } from './components/LabelsEditor.jsx'
+import { RecurringView } from './components/RecurringView.jsx'
+import { WhatsNewDialog } from './components/WhatsNewDialog.jsx'
 import { WelcomeCard } from './components/WelcomeCard.jsx'
 import { YearSummary } from './components/YearSummary.jsx'
 import { AnnualView } from './components/AnnualView.jsx'
@@ -26,8 +32,11 @@ export default function App() {
   const [demo, setDemo] = useState(false)
   const [year, setYear] = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [tab, setTab] = useState('mes') // mes | anual | categorias | historico
+  const [tab, setTab] = useState('mes') // mes | anual | categorias | historico | recurrentes
   const [showForm, setShowForm] = useState(false)
+  const [showLabels, setShowLabels] = useState(false)
+  const [whatsNewDismissed, setWhatsNewDismissed] = useState(false)
+  const [autoNotice, setAutoNotice] = useState(0)
   const [importing, setImporting] = useState(false)
   const [preview, setPreview] = useState(null)
   const [prefill, setPrefill] = useState(null)
@@ -46,7 +55,16 @@ export default function App() {
     return watchSession(setUser)
   }, [])
 
-  const { store, movements: activeMovements, balances: activeBalances, refreshBalances } = useLedger(user, demo)
+  const { store, movements: activeMovements, balances: activeBalances, rules, preferences, preferencesLoaded, refreshBalances, refreshPreferences } = useLedger(user, demo)
+
+  const release = currentRelease()
+  const showWhatsNew =
+    preferencesLoaded && !whatsNewDismissed && preferences.lastSeenVersion !== APP_VERSION
+
+  // Al cambiar de cuenta o de modo, el aviso vuelve a evaluarse para ese usuario.
+  useEffect(() => {
+    setWhatsNewDismissed(false)
+  }, [store])
 
   const togglePrivate = () => {
     setPrivateMode((v) => {
@@ -133,6 +151,72 @@ export default function App() {
     await refreshBalances()
   }
 
+  // Movimientos automáticos: al cargar y al volver a la pestaña, apunta los que tocan.
+  const runningRecurring = useRef(false)
+  const runDueRecurring = useCallback(async () => {
+    if (!store || runningRecurring.current) return
+    if (!rules.some((r) => r.active !== false)) return
+    runningRecurring.current = true
+    try {
+      const { created } = await runRecurring(store, rules, localISODate())
+      if (created) setAutoNotice((n) => n + created)
+    } catch (e) {
+      console.error('No se pudieron apuntar los movimientos automáticos', e)
+    } finally {
+      runningRecurring.current = false
+    }
+  }, [store, rules])
+
+  useEffect(() => {
+    runDueRecurring()
+  }, [runDueRecurring])
+
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState === 'visible') runDueRecurring()
+    }
+    document.addEventListener('visibilitychange', check)
+    window.addEventListener('focus', check)
+    return () => {
+      document.removeEventListener('visibilitychange', check)
+      window.removeEventListener('focus', check)
+    }
+  }, [runDueRecurring])
+
+  const handleAddRule = async (values) => {
+    if (!store) return
+    await saveRule(store, values)
+  }
+
+  const handleToggleRule = async (rule) => {
+    if (!store) return
+    await updateRule(store, rule.id, { active: rule.active === false })
+  }
+
+  const handleRemoveRule = async (id) => {
+    if (!confirm('¿Eliminar este movimiento automático? Los movimientos ya apuntados se quedan.')) return
+    if (!store) return
+    await removeRule(store, id)
+  }
+
+  const handleSavePreferences = async (prefs) => {
+    if (!store) return
+    await savePreferences(store, { ...preferences, ...prefs })
+    await refreshPreferences()
+    setShowLabels(false)
+  }
+
+  const handleDismissWhatsNew = async () => {
+    setWhatsNewDismissed(true)
+    if (!store) return
+    try {
+      await savePreferences(store, { ...preferences, lastSeenVersion: APP_VERSION })
+      await refreshPreferences()
+    } catch (e) {
+      console.error('No se pudo guardar la versión vista', e)
+    }
+  }
+
   const onFileChosen = async (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -190,12 +274,13 @@ export default function App() {
             </select>
             <button onClick={() => setYear((y) => y + 1)} className="px-2 py-1 hover:text-boli" aria-label="Año siguiente">›</button>
           </div>
-          <nav className="flex text-sm border border-tinta/25 bg-white" aria-label="Vistas">
+          <nav className="flex flex-wrap text-sm border border-tinta/25 bg-white" aria-label="Vistas">
             {[
               ['mes', 'Mes'],
               ['anual', 'Año'],
               ['categorias', 'Categorías'],
-              ['historico', 'Historial']
+              ['historico', 'Historial'],
+              ['recurrentes', 'Automáticos']
             ].map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)} aria-current={tab === id ? 'page' : undefined} className={`px-4 py-2 font-medium border-r last:border-r-0 border-tinta/15 ${tab === id ? 'bg-tinta text-white font-semibold' : 'hover:bg-papel'}`}>
                 {label}
@@ -204,6 +289,13 @@ export default function App() {
           </nav>
           <div className="ml-auto flex items-center gap-2 text-sm w-full sm:w-auto justify-start border-t border-tinta/15 pt-2 sm:border-t-0 sm:pt-0">
             <span className="text-tinta/55 hidden md:inline">{demo ? 'modo demo' : user?.email}</span>
+            <button
+              onClick={() => setShowLabels(true)}
+              title="Cambiar los nombres de grupos y tipos"
+              className="border border-tinta/25 px-2.5 py-1.5 hover:border-boli hover:text-boli"
+            >
+              Nombres
+            </button>
             <button
               onClick={togglePrivate}
               aria-pressed={privateMode}
@@ -234,6 +326,20 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 sm:pl-8 mt-6 space-y-8 ledger-margin sm:ml-4">
+        {autoNotice > 0 && (
+          <div className="flex items-center gap-3 border border-boli/30 bg-[#eef2fd] px-4 py-3 text-sm">
+            <span className="flex-1">
+              Se {autoNotice === 1 ? 'ha apuntado 1 movimiento automático' : `han apuntado ${autoNotice} movimientos automáticos`} en su mes.
+            </span>
+            <button
+              onClick={() => setAutoNotice(0)}
+              className="text-tinta/50 hover:text-tinta"
+              aria-label="Cerrar aviso"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {activeMovements.length === 0 && (
           <WelcomeCard
             year={year}
@@ -265,6 +371,7 @@ export default function App() {
             totalIncome={totalIncome}
             month={month}
             fmt={fmt}
+            preferences={preferences}
           />
         )}
 
@@ -279,6 +386,7 @@ export default function App() {
             monthExpense={monthExpense}
             onRemove={handleRemove}
             fmt={fmt}
+            preferences={preferences}
           />
         )}
 
@@ -290,6 +398,18 @@ export default function App() {
             onMonth={setMonth}
             onCurrentMonth={goCurrentMonth}
             fmt={fmt}
+            preferences={preferences}
+          />
+        )}
+
+        {tab === 'recurrentes' && (
+          <RecurringView
+            rules={rules}
+            onAdd={handleAddRule}
+            onToggle={handleToggleRule}
+            onRemove={handleRemoveRule}
+            fmt={fmt}
+            preferences={preferences}
           />
         )}
 
@@ -319,8 +439,21 @@ export default function App() {
       )}
       {showForm && (
         <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:w-[26rem] z-40 max-h-[70vh] overflow-auto">
-          <MovementForm onSave={handleSave} initial={prefill ?? undefined} />
+          <MovementForm onSave={handleSave} initial={prefill ?? undefined} preferences={preferences} />
         </div>
+      )}
+
+      {showLabels && (
+        <LabelsEditor
+          preferences={preferences}
+          movements={activeMovements}
+          onSave={handleSavePreferences}
+          onClose={() => setShowLabels(false)}
+        />
+      )}
+
+      {showWhatsNew && (
+        <WhatsNewDialog release={release} onClose={handleDismissWhatsNew} />
       )}
 
       <ImportPreviewDialog

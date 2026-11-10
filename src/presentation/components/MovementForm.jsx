@@ -1,19 +1,30 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { EXPENSE_GROUPS, INCOME_GROUPS } from '../../domain/categories.js'
+import { displayLabel, personalizeGroups } from '../../domain/catalog.js'
 import { toISODate } from '../../domain/dates.js'
 
-export function MovementForm({ onSave, initial }) {
+const baseGroups = (kind) => (kind === 'ingreso' ? INCOME_GROUPS : EXPENSE_GROUPS)
+
+export function MovementForm({ onSave, initial, preferences }) {
   const [kind, setKind] = useState(initial?.kind ?? 'gasto')
-  const groups = kind === 'ingreso' ? INCOME_GROUPS : EXPENSE_GROUPS
-  const [group, setGroup] = useState(initial?.group ?? groups[0].group)
+  const groups = useMemo(() => personalizeGroups(baseGroups(kind), preferences), [kind, preferences])
+  const [group, setGroup] = useState(initial?.group ?? baseGroups(initial?.kind ?? 'gasto')[0].group)
   const currentGroup = groups.find((g) => g.group === group) ?? groups[0]
-  const [label, setLabel] = useState(initial?.label ?? currentGroup.items[0])
+  const [label, setLabel] = useState(initial?.label ?? currentGroup.items[0]?.value ?? '')
   const [amount, setAmount] = useState(initial?.amount ?? '')
   const [date, setDate] = useState(initial?.date ?? toISODate())
   const [note, setNote] = useState(initial?.note ?? '')
 
+  // Si el tipo viene de un Excel y no está en el catálogo, se ofrece igualmente.
+  const labelOptions = useMemo(() => {
+    if (label && !currentGroup.items.some((i) => i.value === label)) {
+      return [...currentGroup.items, { value: label, label: displayLabel(preferences, label) }]
+    }
+    return currentGroup.items
+  }, [currentGroup, label, preferences])
+
   useEffect(() => {
-    const gs = kind === 'ingreso' ? INCOME_GROUPS : EXPENSE_GROUPS
+    const gs = baseGroups(kind)
     if (!gs.some((g) => g.group === group)) {
       setGroup(gs[0].group)
       setLabel(gs[0].items[0])
@@ -61,17 +72,17 @@ export function MovementForm({ onSave, initial }) {
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="block text-xs text-tinta/55 mb-1">Grupo</span>
-          <select value={group} onChange={(e) => { setGroup(e.target.value); setLabel((groups.find(g=>g.group===e.target.value)?.items ?? [])[0] ?? '') }} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm">
+          <select value={currentGroup.group} onChange={(e) => { setGroup(e.target.value); setLabel((groups.find(g=>g.group===e.target.value)?.items ?? [])[0]?.value ?? '') }} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm">
             {groups.map((g) => (
-              <option key={g.group} value={g.group}>{g.group}</option>
+              <option key={g.group} value={g.group}>{g.groupLabel}</option>
             ))}
           </select>
         </label>
         <label className="block">
           <span className="block text-xs text-tinta/55 mb-1">Tipo</span>
           <select value={label} onChange={(e) => setLabel(e.target.value)} className="w-full border-b border-tinta/30 focus:border-boli focus:border-b-2 py-1.5 text-sm">
-            {currentGroup.items.map((i) => (
-              <option key={i} value={i}>{i}</option>
+            {labelOptions.map((i) => (
+              <option key={i.value} value={i.value}>{i.label}</option>
             ))}
           </select>
         </label>

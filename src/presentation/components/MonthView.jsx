@@ -1,7 +1,8 @@
 import { MONTHS, groupOfLabel } from '../../domain/categories.js'
+import { displayGroup, displayLabel } from '../../domain/catalog.js'
 import { MonthPicker } from './MonthPicker.jsx'
 
-export function MonthView({ year, month, onMonth, onCurrentMonth, monthMovs, monthIncome, monthExpense, onRemove, fmt }) {
+export function MonthView({ year, month, onMonth, onCurrentMonth, monthMovs, monthIncome, monthExpense, onRemove, fmt, preferences }) {
   return (
     <div className="space-y-6">
       <MonthPicker month={month} onMonth={onMonth} onCurrent={onCurrentMonth} />
@@ -44,8 +45,8 @@ export function MonthView({ year, month, onMonth, onCurrentMonth, monthMovs, mon
           return entries.map(([label, v]) => (
             <div key={label} className="flex items-center gap-3 text-sm py-1.5 border-b border-tinta/10 last:border-b-0">
               <div className="w-44 shrink-0">
-                <p className="truncate font-medium">{label}</p>
-                <p className="text-xs text-tinta/50">{groupOfLabel(label)}</p>
+                <p className="truncate font-medium">{displayLabel(preferences, label)}</p>
+                <p className="text-xs text-tinta/50">{displayGroup(preferences, groupOfLabel(label))}</p>
               </div>
               <div className="flex-1 h-3 bg-papel border border-tinta/15 overflow-hidden">
                 <div className="bg-rojo/80 h-full" style={{ width: `${(v / max) * 100}%` }} />
@@ -61,13 +62,13 @@ export function MonthView({ year, month, onMonth, onCurrentMonth, monthMovs, mon
           <div key={m.id} className="p-4 flex items-center gap-3 text-sm border-b border-tinta/10 last:border-b-0 hover:bg-boli/[0.03]">
             <span aria-hidden="true" className={`w-1 self-stretch ${m.kind === 'ingreso' ? 'bg-haber' : 'bg-rojo'}`} />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate">{m.label}</p>
-              <p className="text-xs text-tinta/50">{m.group}, {m.date}{m.note ? `, ${m.note}` : ''}</p>
+              <p className="font-semibold truncate">{displayLabel(preferences, m.label)}</p>
+              <p className="text-xs text-tinta/50">{displayGroup(preferences, m.group)}, {m.date}{m.recurringId ? ', automático' : ''}{m.note ? `, ${m.note}` : ''}</p>
             </div>
             <p className={`figures font-slab font-semibold text-base ${m.kind === 'ingreso' ? 'text-haber' : 'text-rojo'}`}>
               {m.kind === 'ingreso' ? '+' : '−'}{fmt(m.amount)}
             </p>
-            <button onClick={() => onRemove(m.id)} aria-label={`Borrar ${m.label}`} className="text-tinta/25 hover:text-rojo px-2 text-base">✕</button>
+            <button onClick={() => onRemove(m.id)} aria-label={`Borrar ${displayLabel(preferences, m.label)}`} className="text-tinta/25 hover:text-rojo px-2 text-base">✕</button>
           </div>
         ))}
       </section>

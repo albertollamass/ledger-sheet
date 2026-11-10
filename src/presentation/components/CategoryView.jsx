@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EXPENSE_GROUPS, INCOME_GROUPS, MONTHS } from '../../domain/categories.js'
+import { displayGroup, displayLabel } from '../../domain/catalog.js'
 import { sum } from '../../domain/ledger.js'
 
-export function CategoryView({ movements, year, month, onMonth, onCurrentMonth, fmt }) {
+export function CategoryView({ movements, year, month, onMonth, onCurrentMonth, fmt, preferences }) {
   const [catGroup, setCatGroup] = useCatGroup(movements, year)
   const [catScope, setCatScope] = useCatScope()
 
@@ -52,7 +53,7 @@ export function CategoryView({ movements, year, month, onMonth, onCurrentMonth, 
                 : 'bg-white border-tinta/25 hover:border-boli hover:text-boli'
             }`}
           >
-            {g}
+            {displayGroup(preferences, g)}
           </button>
         ))}
       </div>
@@ -64,7 +65,7 @@ export function CategoryView({ movements, year, month, onMonth, onCurrentMonth, 
         >
           <div className="flex flex-wrap items-center gap-2 self-start">
             <div>
-              <p className="font-slab text-lg text-tinta/60">{catGroup}</p>
+              <p className="font-slab text-lg text-tinta/60">{displayGroup(preferences, catGroup)}</p>
               <p
                 className={`figures font-slab font-bold leading-none text-5xl sm:text-6xl mt-1 ${
                   catData.kind === 'ingreso' ? 'text-haber' : 'text-rojo'
@@ -131,7 +132,7 @@ export function CategoryView({ movements, year, month, onMonth, onCurrentMonth, 
           <div className="mt-4 border-t-2 border-tinta/60">
             {catData.rows.length === 0 && (
               <p className="text-sm text-tinta/55 py-4">
-                Nada en {catGroup} {catScope === 'mes' ? `en ${MONTHS[month - 1].toLowerCase()}` : `en ${year}`}.
+                Nada en {displayGroup(preferences, catGroup)} {catScope === 'mes' ? `en ${MONTHS[month - 1].toLowerCase()}` : `en ${year}`}.
               </p>
             )}
             {catData.rows.map((r) => (
@@ -140,7 +141,7 @@ export function CategoryView({ movements, year, month, onMonth, onCurrentMonth, 
                 className="flex items-center gap-3 text-sm py-2.5 border-b border-tinta/10 last:border-b-0"
               >
                 <div className="w-44 shrink-0">
-                  <p className="truncate font-medium">{r.label}</p>
+                  <p className="truncate font-medium">{displayLabel(preferences, r.label)}</p>
                   <p className="text-xs text-tinta/50">
                     {r.count} {r.count === 1 ? 'movimiento' : 'movimientos'}
                   </p>

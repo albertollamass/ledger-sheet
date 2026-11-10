@@ -45,10 +45,12 @@ Reinicia `npm run dev`.
 
 ## 5. Modelo de datos (igual que tu Excel)
 
-- `users/{uid}/movements/{id}`: `{ kind: 'ingreso'|'gasto', group, label (tipo), amount, date 'YYYY-MM-DD', year, month, note }`
+- `users/{uid}/movements/{id}`: `{ kind: 'ingreso'|'gasto', group, label (tipo), amount, date 'YYYY-MM-DD', year, month, note, recurringId? }`
 - `users/{uid}/yearSettings/{año}`: `{ initialBalance }` → es el "Saldo Inicial" del Excel.
+- `users/{uid}/recurring/{id}`: `{ kind, group, label, amount, day, startDate, note, active, lastRun }` → movimientos automáticos mensuales.
+- `users/{uid}/settings/preferences`: `{ labels: {…}, groups: {…}, lastSeenVersion }` → nombres personalizados y última versión de novedades vista.
 
-Las categorías vienen de tu hoja 2026 y están en `src/domain/categories.js`. Edítalas ahí si quieres añadir tipos.
+Las categorías vienen de tu hoja 2026 y están en `src/domain/categories.js`. Cada usuario puede renombrarlas desde el botón **Nombres** sin cambiar los datos guardados.
 
 ## Despliegue gratis
 Opción fácil: Firebase Hosting
