@@ -37,3 +37,7 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          # firebase-tools >= 15.34.1 comprueba la API de Hosting con Service Usage
+          # y el service account de despliegue no tiene serviceusage.services.get.
+          # Ver https://github.com/firebase/firebase-tools/issues/11335
+          firebaseToolsVersion: v15.34.0

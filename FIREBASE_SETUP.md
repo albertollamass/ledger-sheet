@@ -62,3 +62,20 @@ firebase init hosting  # dist como public, SPA: yes
 npm run build
 firebase deploy
 ```
+
+## Si falla el despliegue en GitHub Actions
+
+Si aparece un error 403 como este:
+
+```
+Permission denied to get service [firebasehosting.googleapis.com]
+permission: serviceusage.services.get
+```
+
+es un cambio de `firebase-tools` 15.34.1 que comprueba la API de Hosting antes de desplegar.
+El workflow ya fija `firebaseToolsVersion: v15.34.0` para evitarlo. La solución definitiva es
+dar al service account de despliegue el rol **Service Usage Consumer**
+(`roles/serviceusage.serviceUsageConsumer`) en Google Cloud IAM y quitar el pin cuando
+firebase-tools lo corrija.
+
+Referencia: https://github.com/firebase/firebase-tools/issues/11335
